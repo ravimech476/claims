@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Routes, Route, useLocation } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import ClaimsTable from './ClaimsTable';
+import ClaimsDashboard from './ClaimsDashboard';
 import ClaimImportPageSimple from './ClaimImportPageSimple';
 import EmptyPage from './EmptyPage';
 import { Menu } from 'lucide-react';
@@ -93,7 +94,7 @@ const Dashboard = ({ onLogout }) => {
             <Route path="/" element={<ClaimsTable sidebarOpen={sidebarOpen} onToggleSidebar={toggleSidebar} />} />
             <Route path="/claims" element={<ClaimsTable sidebarOpen={sidebarOpen} onToggleSidebar={toggleSidebar} />} />
             <Route path="/claims/import" element={<ClaimImportPageSimple />} />
-            <Route path="/dashboard" element={<EmptyPage title="Dashboard" />} />
+            <Route path="/dashboard" element={<ClaimsDashboard />} />
             <Route path="/members" element={<EmptyPage title="Members Management" />} />
             <Route path="/providers" element={<EmptyPage title="Providers Management" />} />
             <Route path="/payments" element={<EmptyPage title="Payments Management" />} />

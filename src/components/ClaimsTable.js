@@ -19,11 +19,456 @@ import {
   Upload,
   FileSpreadsheet,
   RefreshCw,
-  Search
+  Search,
+  SortAsc,
+  SortDesc
 } from 'lucide-react';
 import ExcelFilter from './ExcelFilter';
 import FilterSidebar from './FilterSidebar';
 // import ClaimImportService from '../services/ClaimImportService';
+
+// Filter Dropdown Component
+const FilterDropdown = ({
+  column,
+  onClose,
+  getUniqueValues,
+  formatCellContent,
+  applyFilter,
+  removeFilter,
+  buttonRef,
+}) => {
+  const [filterType, setFilterType] = useState("values");
+  const [searchText, setSearchText] = useState("");
+  const [selectedValues, setSelectedValues] = useState(new Set());
+  const [selectAll, setSelectAll] = useState(true);
+  const [sortOrder, setSortOrder] = useState("asc");
+  const [numberMin, setNumberMin] = useState("");
+  const [numberMax, setNumberMax] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [position, setPosition] = useState({ top: 0, left: 0 });
+  const [isPositioned, setIsPositioned] = useState(false);
+
+  // Calculate position based on button ref
+  useEffect(() => {
+    if (buttonRef?.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      const viewportWidth = window.innerWidth;
+      const dropdownWidth = 320;
+
+      let left = rect.left;
+      let top = rect.bottom + 8;
+
+      if (left + dropdownWidth > viewportWidth) {
+        left = viewportWidth - dropdownWidth - 16;
+      }
+
+      if (top + 400 > window.innerHeight) {
+        top = rect.top - 400 - 8;
+      }
+
+      setPosition({ top, left });
+      setIsPositioned(true);
+    }
+  }, [buttonRef]);
+
+  const uniqueValues = getUniqueValues(column.key);
+  const filteredValues = uniqueValues.filter((value) =>
+    String(value).toLowerCase().includes(searchText.toLowerCase())
+  );
+
+  const sortedValues = [...filteredValues].sort((a, b) => {
+    if (sortOrder === "asc") {
+      return String(a).localeCompare(String(b));
+    } else {
+      return String(b).localeCompare(String(a));
+    }
+  });
+
+  const handleSelectAll = () => {
+    if (selectAll) {
+      setSelectedValues(new Set());
+    } else {
+      setSelectedValues(new Set(filteredValues));
+    }
+    setSelectAll(!selectAll);
+  };
+
+  const handleValueToggle = (value) => {
+    setSelectedValues((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(value)) {
+        newSet.delete(value);
+      } else {
+        newSet.add(value);
+      }
+      return newSet;
+    });
+  };
+
+  const handleApplyFilter = () => {
+    let filterConfig = {};
+
+    if (filterType === "values" && selectedValues.size > 0) {
+      filterConfig = { type: "values", selectedValues };
+    } else if (filterType === "text" && searchText) {
+      filterConfig = { type: "text", searchText };
+    } else if (filterType === "number" && (numberMin || numberMax)) {
+      filterConfig = {
+        type: "number",
+        min: numberMin ? parseFloat(numberMin) : undefined,
+        max: numberMax ? parseFloat(numberMax) : undefined,
+      };
+    } else if (filterType === "date" && (dateFrom || dateTo)) {
+      filterConfig = { type: "date", dateFrom, dateTo };
+    }
+
+    if (Object.keys(filterConfig).length > 0) {
+      applyFilter(column.key, filterConfig);
+    }
+    onClose();
+  };
+
+  // Don't render until position is calculated
+  if (!isPositioned) {
+    return null;
+  }
+
+  return (
+    <>
+      {/* Overlay */}
+      <div
+        className="fixed inset-0 z-40 bg-black bg-opacity-10"
+        onClick={onClose}
+      />
+
+      {/* Tooltip-style Dropdown */}
+      <div
+        className="fixed z-50 bg-white border border-gray-200 rounded-lg shadow-2xl w-80"
+        style={{
+          top: `${position.top}px`,
+          left: `${position.left}px`,
+          transition: "none",
+          transform: "none",
+        }}
+      >
+        {/* Arrow pointing to button */}
+        <div
+          className="absolute -top-2 w-4 h-4 bg-white border-l border-t border-gray-200 transform rotate-45"
+          style={{
+            left: buttonRef?.current
+              ? Math.min(
+                  Math.max(
+                    buttonRef.current.getBoundingClientRect().left -
+                      position.left +
+                      8,
+                    16
+                  ),
+                  304
+                )
+              : 16,
+            transition: "none",
+          }}
+        />
+
+        {/* Filter Header */}
+        <div className="p-3 border-b border-gray-200 bg-gray-50 rounded-t-lg">
+          <div className="flex items-center justify-between">
+            <h3 className="font-medium text-gray-900">
+              Filter: {column.title}
+            </h3>
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-600 p-1 hover:bg-gray-200 rounded"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+
+        {/* Filter Type Tabs */}
+        <div className="p-3 border-b border-gray-200">
+          <div className="flex gap-1">
+            <button
+              onClick={() => setFilterType("values")}
+              className={`px-3 py-1 text-sm rounded ${
+                filterType === "values"
+                  ? "bg-blue-100 text-blue-700"
+                  : "text-gray-600 hover:bg-gray-100"
+              }`}
+            >
+              Values
+            </button>
+            <button
+              onClick={() => setFilterType("text")}
+              className={`px-3 py-1 text-sm rounded ${
+                filterType === "text"
+                  ? "bg-blue-100 text-blue-700"
+                  : "text-gray-600 hover:bg-gray-100"
+              }`}
+            >
+              Text Filter
+            </button>
+            {(column.type === "currency" || column.type === "number") && (
+              <button
+                onClick={() => setFilterType("number")}
+                className={`px-3 py-1 text-sm rounded ${
+                  filterType === "number"
+                    ? "bg-blue-100 text-blue-700"
+                    : "text-gray-600 hover:bg-gray-100"
+                }`}
+              >
+                Number
+              </button>
+            )}
+            {column.type === "date" && (
+              <button
+                onClick={() => setFilterType("date")}
+                className={`px-3 py-1 text-sm rounded ${
+                  filterType === "date"
+                    ? "bg-blue-100 text-blue-700"
+                    : "text-gray-600 hover:bg-gray-100"
+                }`}
+              >
+                Date
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Filter Content */}
+        <div className="p-3 max-h-80 overflow-y-auto">
+          {filterType === "values" && (
+            <>
+              {/* Search Box */}
+              <div className="relative mb-3">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <input
+                  type="text"
+                  placeholder="Search values..."
+                  value={searchText}
+                  onChange={(e) => setSearchText(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+
+              {/* Sort Controls */}
+              <div className="flex items-center gap-2 mb-3">
+                <button
+                  onClick={() =>
+                    setSortOrder(sortOrder === "asc" ? "desc" : "asc")
+                  }
+                  className="flex items-center gap-1 px-2 py-1 text-xs border border-gray-300 rounded hover:bg-gray-50"
+                >
+                  {sortOrder === "asc" ? (
+                    <SortAsc className="w-3 h-3" />
+                  ) : (
+                    <SortDesc className="w-3 h-3" />
+                  )}
+                  Sort
+                </button>
+              </div>
+
+              {/* Select All */}
+              <div className="flex items-center gap-2 mb-2 pb-2 border-b border-gray-200">
+                <input
+                  type="checkbox"
+                  checked={selectAll}
+                  onChange={handleSelectAll}
+                  className="rounded border-gray-300"
+                />
+                <span className="text-sm font-medium">(Select All)</span>
+              </div>
+
+              {/* Values List */}
+              <div className="max-h-48 overflow-y-auto">
+                {sortedValues.map((value, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center gap-2 py-1 hover:bg-gray-50 rounded px-1"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedValues.has(value)}
+                      onChange={() => handleValueToggle(value)}
+                      className="rounded border-gray-300"
+                    />
+                    <span className="text-sm">
+                      {formatCellContent(value, column.type)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
+          {filterType === "text" && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Contains text:
+              </label>
+              <input
+                type="text"
+                placeholder="Enter text to search..."
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+          )}
+
+          {filterType === "number" && (
+            <div className="space-y-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Minimum Value:
+                </label>
+                <input
+                  type="number"
+                  placeholder="Min"
+                  value={numberMin}
+                  onChange={(e) => setNumberMin(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Maximum Value:
+                </label>
+                <input
+                  type="number"
+                  placeholder="Max"
+                  value={numberMax}
+                  onChange={(e) => setNumberMax(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+            </div>
+          )}
+
+          {filterType === "date" && (
+            <div className="space-y-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  From Date:
+                </label>
+                <input
+                  type="date"
+                  value={dateFrom}
+                  onChange={(e) => setDateFrom(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  To Date:
+                </label>
+                <input
+                  type="date"
+                  value={dateTo}
+                  onChange={(e) => setDateTo(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Filter Actions */}
+        <div className="p-3 border-t border-gray-200 bg-gray-50 flex gap-2 rounded-b-lg">
+          <button
+            onClick={handleApplyFilter}
+            className="flex-1 px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition-colors"
+          >
+            Apply Filter
+          </button>
+          <button
+            onClick={() => removeFilter(column.key)}
+            className="px-4 py-2 border border-gray-300 text-gray-700 text-sm rounded-md hover:bg-gray-50 transition-colors"
+          >
+            Clear
+          </button>
+        </div>
+      </div>
+    </>
+  );
+};
+
+// SubHeader Component
+const SubHeader = ({
+  column,
+  appliedFilters,
+  activeFilter,
+  setActiveFilter,
+  getUniqueValues,
+  formatCellContent,
+  applyFilter,
+  removeFilter,
+  pinnedColumns,
+  sortConfig,
+  handleSortChange
+}) => {
+  const buttonRef = useRef(null);
+
+  return (
+    <th
+      key={`${column.key}`}
+      className="bg-gray-100 border-b border-gray-200 p-3 text-left text-xs text-gray-600 font-medium transition-all duration-300 relative"
+      style={{ width: column.width }}
+    >
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-1">
+          {pinnedColumns.has(column.key) && (
+            <Pin size={12} className="text-blue-500" />
+          )}
+          <button
+            onClick={() => handleSortChange(column.key)}
+            className="flex items-center gap-1 hover:text-gray-800 transition-colors"
+            title={`Sort by ${column.title}`}
+          >
+            <span>{column.title}</span>
+            {sortConfig.key === column.key && (
+              <span className="text-blue-500">
+                {sortConfig.direction === 'asc' ? '↑' : '↓'}
+              </span>
+            )}
+          </button>
+        </div>
+        <div className="flex items-center gap-1">
+          {appliedFilters[column.key] && (
+            <div className="w-2 h-2 bg-blue-500 rounded-full" title="Filter applied"></div>
+          )}
+          <button
+            ref={buttonRef}
+            onClick={() =>
+              setActiveFilter(activeFilter === column.key ? null : column.key)
+            }
+            className={`p-1 rounded hover:bg-gray-200 transition-colors ${
+              appliedFilters[column.key]
+                ? "text-blue-600"
+                : "text-gray-400 hover:text-gray-600"
+            }`}
+            title={`Filter ${column.title}`}
+          >
+            <Filter className="w-3 h-3" />
+          </button>
+        </div>
+      </div>
+
+      {activeFilter === column.key && (
+        <FilterDropdown
+          column={column}
+          onClose={() => setActiveFilter(null)}
+          getUniqueValues={getUniqueValues}
+          formatCellContent={formatCellContent}
+          applyFilter={applyFilter}
+          removeFilter={removeFilter}
+          buttonRef={buttonRef}
+        />
+      )}
+    </th>
+  );
+};
  
 const ClaimsTable = ({ sidebarOpen = true, onToggleSidebar }) => {
   // State management
@@ -39,6 +484,8 @@ const ClaimsTable = ({ sidebarOpen = true, onToggleSidebar }) => {
   const [activatedFilterField, setActivatedFilterField] = useState(null);
   const [importedClaims, setImportedClaims] = useState([]);
   const [showExportMenu, setShowExportMenu] = useState(false);
+  const [activeFilter, setActiveFilter] = useState(null);
+  const [appliedFilters, setAppliedFilters] = useState({});
 
   // Load imported claims from localStorage
   useEffect(() => {
@@ -60,6 +507,18 @@ const ClaimsTable = ({ sidebarOpen = true, onToggleSidebar }) => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [showExportMenu]);
+
+  // Close filter dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (activeFilter && !event.target.closest('.relative')) {
+        setActiveFilter(null);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [activeFilter]);
  
   // Enhanced sample claims data - More records for pagination testing
   const baseSampleClaims = [
@@ -801,10 +1260,53 @@ const ClaimsTable = ({ sidebarOpen = true, onToggleSidebar }) => {
   const filteredAndSortedData = useMemo(() => {
     let filtered = sampleClaims;
  
-    // Apply filters
+    // Apply filters from both activeFilters and appliedFilters
     Object.entries(activeFilters).forEach(([columnKey, filterValues]) => {
       if (filterValues && filterValues.length > 0) {
         filtered = filtered.filter(row => filterValues.includes(row[columnKey]));
+      }
+    });
+
+    // Apply advanced filters from appliedFilters
+    Object.entries(appliedFilters).forEach(([columnKey, filterConfig]) => {
+      if (filterConfig.type === "values" && filterConfig.selectedValues.size > 0) {
+        filtered = filtered.filter((row) =>
+          filterConfig.selectedValues.has(row[columnKey])
+        );
+      } else if (filterConfig.type === "text" && filterConfig.searchText) {
+        filtered = filtered.filter((row) =>
+          String(row[columnKey] || "")
+            .toLowerCase()
+            .includes(filterConfig.searchText.toLowerCase())
+        );
+      } else if (
+        filterConfig.type === "number" &&
+        (filterConfig.min !== undefined || filterConfig.max !== undefined)
+      ) {
+        filtered = filtered.filter((row) => {
+          const value = parseFloat(row[columnKey]);
+          if (isNaN(value)) return false;
+          if (filterConfig.min !== undefined && value < filterConfig.min)
+            return false;
+          if (filterConfig.max !== undefined && value > filterConfig.max)
+            return false;
+          return true;
+        });
+      } else if (
+        filterConfig.type === "date" &&
+        (filterConfig.dateFrom || filterConfig.dateTo)
+      ) {
+        filtered = filtered.filter((row) => {
+          const rowDate = new Date(row[columnKey]);
+          if (
+            filterConfig.dateFrom &&
+            rowDate < new Date(filterConfig.dateFrom)
+          )
+            return false;
+          if (filterConfig.dateTo && rowDate > new Date(filterConfig.dateTo))
+            return false;
+          return true;
+        });
       }
     });
  
@@ -823,7 +1325,7 @@ const ClaimsTable = ({ sidebarOpen = true, onToggleSidebar }) => {
     }
  
     return filtered;
-  }, [activeFilters, sortConfig, sampleClaims]);
+  }, [activeFilters, appliedFilters, sortConfig, sampleClaims]);
  
   // Toggle group expansion
   const toggleGroup = (groupId) => {
@@ -882,6 +1384,66 @@ const ClaimsTable = ({ sidebarOpen = true, onToggleSidebar }) => {
   const handleFilterByClick = (columnKey) => {
     setActivatedFilterField(columnKey);
     setShowFilterSidebar(true);
+  };
+
+  // Get unique values for a column (for filter dropdown)
+  const getUniqueValues = (columnKey) => {
+    const values = sampleClaims
+      .map((row) => row[columnKey])
+      .filter((val) => val !== "" && val !== null && val !== undefined);
+    return [...new Set(values)].sort();
+  };
+
+  // Handle filter application
+  const applyFilter = (columnKey, filterConfig) => {
+    setAppliedFilters((prev) => ({
+      ...prev,
+      [columnKey]: filterConfig,
+    }));
+    setActiveFilter(null);
+    setCurrentPage(1);
+  };
+
+  // Remove specific filter
+  const removeFilter = (columnKey) => {
+    setAppliedFilters((prev) => {
+      const newFilters = { ...prev };
+      delete newFilters[columnKey];
+      return newFilters;
+    });
+    // Close the dropdown after clearing
+    setActiveFilter(null);
+    // Reset current page to 1 when filters change
+    setCurrentPage(1);
+  };
+
+  // Clear all filters
+  const clearAllFilters = () => {
+    setAppliedFilters({});
+    setActiveFilters({});
+    setActiveFilter(null);
+    setCurrentPage(1);
+  };
+
+  // Format cell content based on type (for filter dropdown)
+  const formatCellContent = (value, type) => {
+    if (!value && value !== 0) return "-";
+
+    switch (type) {
+      case "currency":
+        return `${parseFloat(value).toLocaleString("en-US", {
+          minimumFractionDigits: 2,
+        })}`;
+      case "date":
+        return new Date(value).toLocaleDateString();
+      case "status":
+        return value;
+      case "code":
+      case "diagnosis":
+        return value;
+      default:
+        return value;
+    }
   };
 
   // Export functions
@@ -976,6 +1538,8 @@ const ClaimsTable = ({ sidebarOpen = true, onToggleSidebar }) => {
     setSelectedClaims(new Set());
     setCurrentPage(1);
     setActiveFilters({});
+    setAppliedFilters({});
+    setActiveFilter(null);
     setSortConfig({ key: null, direction: null });
     setShowFilterSidebar(false);
     setShowExportMenu(false);
@@ -986,7 +1550,7 @@ const ClaimsTable = ({ sidebarOpen = true, onToggleSidebar }) => {
     setImportedClaims([]);
     
     // You could also add a success message here
-    console.log('Claims data refreshed');
+    console.log('Claims data refreshed - all filters cleared');
   };
 
   // Open filter sidebar
@@ -1100,6 +1664,23 @@ const ClaimsTable = ({ sidebarOpen = true, onToggleSidebar }) => {
               {selectedClaims.size > 0 && (
                 <div className="bg-blue-100 text-blue-800 px-3 py-1 rounded text-sm font-medium">
                   {selectedClaims.size} selected
+                </div>
+              )}
+              
+              {/* Show active filters count */}
+              {Object.keys(appliedFilters).length > 0 && (
+                <div className="flex items-center gap-2">
+                  <div className="bg-orange-100 text-orange-800 px-3 py-1 rounded text-sm font-medium">
+                    {Object.keys(appliedFilters).length} filter{Object.keys(appliedFilters).length > 1 ? 's' : ''} active
+                  </div>
+                  <button 
+                    onClick={clearAllFilters}
+                    className="flex items-center gap-1 px-2 py-1 border border-orange-300 text-orange-700 rounded text-sm hover:bg-orange-50 transition-colors"
+                    title="Clear all filters"
+                  >
+                    <X size={12} />
+                    Clear All
+                  </button>
                 </div>
               )}
               
@@ -1282,39 +1863,20 @@ const ClaimsTable = ({ sidebarOpen = true, onToggleSidebar }) => {
                 >
                 </th>
                 {allVisibleColumns.map((column) => (
-                  <th
+                  <SubHeader
                     key={`${column.key}`}
-                    className="bg-gray-100 border-b border-gray-200 p-3 text-left text-xs text-gray-600 font-medium transition-all duration-300 relative"
-                    style={{ width: column.width }}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1">
-                        {pinnedColumns.has(column.key) && (
-                          <Pin size={12} className="text-blue-500" />
-                        )}
-                        <span>{column.title}</span>
-                        {sortConfig.key === column.key && (
-                          <span className="text-blue-500">
-                            {sortConfig.direction === 'asc' ? '↑' : '↓'}
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <ExcelFilter
-                          column={column}
-                          data={filteredAndSortedData}
-                          onFilterChange={handleFilterChange}
-                          activeFilters={activeFilters}
-                          onSortChange={handleSortChange}
-                          sortDirection={sortConfig.key === column.key ? sortConfig.direction : null}
-                          onPinColumn={handlePinColumn}
-                          onHideColumn={handleHideColumn}
-                          onFilterByClick={handleFilterByClick}
-                          isPinned={pinnedColumns.has(column.key)}
-                        />
-                      </div>
-                    </div>
-                  </th>
+                    column={column}
+                    appliedFilters={appliedFilters}
+                    activeFilter={activeFilter}
+                    setActiveFilter={setActiveFilter}
+                    getUniqueValues={getUniqueValues}
+                    formatCellContent={formatCellContent}
+                    applyFilter={applyFilter}
+                    removeFilter={removeFilter}
+                    pinnedColumns={pinnedColumns}
+                    sortConfig={sortConfig}
+                    handleSortChange={handleSortChange}
+                  />
                 ))}
               </tr>
             </thead>
