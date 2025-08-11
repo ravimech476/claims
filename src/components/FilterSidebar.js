@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, X } from 'lucide-react';
+import { Search, X, Filter, RotateCcw } from 'lucide-react';
 
 const FilterSidebar = ({ 
   isOpen, 
@@ -12,6 +12,18 @@ const FilterSidebar = ({
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedFields, setExpandedFields] = useState(new Set());
+  const [tempFilters, setTempFilters] = useState({}); // Temporary filters before applying
+
+  // Initialize temp filters when sidebar opens
+  useEffect(() => {
+    if (isOpen) {
+      setTempFilters({ ...activeFilters });
+    } else {
+      // Reset expanded fields when sidebar closes
+      setExpandedFields(new Set());
+      setSearchTerm('');
+    }
+  }, [isOpen, activeFilters]);
 
   // Auto-expand the activated field when sidebar opens
   useEffect(() => {
@@ -25,18 +37,40 @@ const FilterSidebar = ({
   };
 
   const handleValueToggle = (columnKey, value) => {
-    const currentFilters = activeFilters[columnKey] || [];
+    const currentFilters = tempFilters[columnKey] || [];
     const newFilters = currentFilters.includes(value)
       ? currentFilters.filter(f => f !== value)
       : [...currentFilters, value];
     
-    onFilterChange(columnKey, newFilters);
+    setTempFilters(prev => ({
+      ...prev,
+      [columnKey]: newFilters
+    }));
   };
 
-  const clearAllFilters = () => {
+  const handleApplyFilters = () => {
+    // Apply all temp filters
+    Object.keys(tempFilters).forEach(key => {
+      onFilterChange(key, tempFilters[key] || []);
+    });
+    // Reset expanded fields
+    setExpandedFields(new Set());
+    onClose();
+  };
+
+  const handleCancelFilters = () => {
+    // Clear all filters and close
     Object.keys(activeFilters).forEach(key => {
       onFilterChange(key, []);
     });
+    // Reset temp filters and expanded fields
+    setTempFilters({});
+    setExpandedFields(new Set());
+    onClose();
+  };
+
+  const clearAllTempFilters = () => {
+    setTempFilters({});
   };
 
   const toggleFieldExpansion = (fieldKey) => {
@@ -49,17 +83,67 @@ const FilterSidebar = ({
     setExpandedFields(newExpanded);
   };
 
-  const handleFilterConditionChange = (columnKey, condition, value) => {
-    if (condition === 'contains' && value) {
-      const filteredValues = getUniqueValues(columnKey).filter(val => 
+  const handleTextFilter = (columnKey, value) => {
+    if (value) {
+      const uniqueValues = getUniqueValues(columnKey);
+      const filteredValues = uniqueValues.filter(val => 
         val.toString().toLowerCase().includes(value.toLowerCase())
       );
-      onFilterChange(columnKey, filteredValues);
-    } else if (condition === 'is' && value) {
-      onFilterChange(columnKey, [value]);
+      setTempFilters(prev => ({
+        ...prev,
+        [columnKey]: filteredValues
+      }));
     } else {
-      onFilterChange(columnKey, []);
+      setTempFilters(prev => ({
+        ...prev,
+        [columnKey]: []
+      }));
     }
+  };
+
+  const handleConditionFilter = (columnKey, condition, value) => {
+    if (!value) {
+      setTempFilters(prev => ({
+        ...prev,
+        [columnKey]: []
+      }));
+      return;
+    }
+
+    const uniqueValues = getUniqueValues(columnKey);
+    let filteredValues = [];
+
+    switch (condition) {
+      case 'contains':
+        filteredValues = uniqueValues.filter(val => 
+          val.toString().toLowerCase().includes(value.toLowerCase())
+        );
+        break;
+      case 'is':
+        filteredValues = uniqueValues.filter(val => 
+          val.toString().toLowerCase() === value.toLowerCase()
+        );
+        break;
+      case 'starts_with':
+        filteredValues = uniqueValues.filter(val => 
+          val.toString().toLowerCase().startsWith(value.toLowerCase())
+        );
+        break;
+      case 'ends_with':
+        filteredValues = uniqueValues.filter(val => 
+          val.toString().toLowerCase().endsWith(value.toLowerCase())
+        );
+        break;
+      default:
+        filteredValues = uniqueValues.filter(val => 
+          val.toString().toLowerCase().includes(value.toLowerCase())
+        );
+    }
+
+    setTempFilters(prev => ({
+      ...prev,
+      [columnKey]: filteredValues
+    }));
   };
 
   const getFilteredFields = () => {
@@ -76,6 +160,8 @@ const FilterSidebar = ({
   };
 
   const filteredFields = getFilteredFields();
+  const hasAnyTempFilters = Object.keys(tempFilters).some(key => tempFilters[key]?.length > 0);
+  const hasActiveFilters = Object.keys(activeFilters).some(key => activeFilters[key]?.length > 0);
 
   if (!isOpen) return null;
 
@@ -91,7 +177,10 @@ const FilterSidebar = ({
       <div className="fixed left-0 top-0 h-full w-80 bg-white shadow-xl z-50 flex flex-col">
         {/* Header */}
         <div className="p-4 border-b border-gray-200 flex items-center justify-between bg-gray-50">
-          <h3 className="text-lg font-semibold text-gray-800">Filter Claims by</h3>
+          <div className="flex items-center gap-2">
+            <Filter className="h-5 w-5 text-blue-600" />
+            <h3 className="text-lg font-semibold text-gray-800">Filter Claims</h3>
+          </div>
           <button
             onClick={onClose}
             className="p-1 hover:bg-gray-200 rounded transition-colors"
@@ -106,7 +195,7 @@ const FilterSidebar = ({
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
             <input
               type="text"
-              placeholder="Search"
+              placeholder="Search fields..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -114,107 +203,143 @@ const FilterSidebar = ({
           </div>
         </div>
 
-        {/* Clear All Filters */}
-        {Object.keys(activeFilters).some(key => activeFilters[key]?.length > 0) && (
-          <div className="p-4 border-b border-gray-200">
-            <button
-              onClick={clearAllFilters}
-              className="text-sm text-red-600 hover:text-red-700 font-medium"
-            >
-              Clear All Filters
-            </button>
+        {/* Filter Status */}
+        <div className="p-4 border-b border-gray-200 bg-gray-50">
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-gray-600">
+              {hasActiveFilters ? 
+                `${Object.keys(activeFilters).filter(key => activeFilters[key]?.length > 0).length} active filters` : 
+                'No active filters'
+              }
+            </span>
+            {hasAnyTempFilters && (
+              <button
+                onClick={clearAllTempFilters}
+                className="text-red-600 hover:text-red-700 font-medium flex items-center gap-1"
+              >
+                <RotateCcw size={14} />
+                Clear All
+              </button>
+            )}
           </div>
-        )}
+        </div>
 
         {/* Filter Fields - Scrollable */}
         <div className="flex-1 overflow-y-auto">
           <div className="p-4">
-            <h4 className="text-sm font-semibold text-gray-700 mb-3">Filter By Fields</h4>
+            <h4 className="text-sm font-semibold text-gray-700 mb-3">Available Fields</h4>
             
             {filteredFields.map(field => {
               const uniqueValues = getUniqueValues(field.key);
-              const currentFilters = activeFilters[field.key] || [];
+              const currentTempFilters = tempFilters[field.key] || [];
+              const currentActiveFilters = activeFilters[field.key] || [];
               const isExpanded = expandedFields.has(field.key);
               const isActivated = activatedField === field.key;
               
               return (
-                <div key={field.key} className={`mb-3 ${isActivated ? 'bg-blue-50 p-2 rounded border border-blue-200' : ''}`}>
+                <div key={field.key} className={`mb-3 border rounded-lg p-3 ${
+                  isActivated ? 'bg-blue-50 border-blue-200' : 
+                  currentActiveFilters.length > 0 ? 'bg-green-50 border-green-200' :
+                  'bg-gray-50 border-gray-200'
+                }`}>
                   <div className="flex items-center gap-2 mb-2">
-                    <input
-                      type="checkbox"
-                      checked={isExpanded}
-                      onChange={() => toggleFieldExpansion(field.key)}
-                      className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500 border-gray-300"
-                    />
-                    <span className={`text-sm font-medium ${
-                      isActivated ? 'text-blue-700 font-semibold' : 'text-gray-700'
-                    }`}>
-                      {field.label}
-                      {isActivated && <span className="ml-2 text-xs">(Selected from table)</span>}
-                    </span>
-                    {currentFilters.length > 0 && (
-                      <span className="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded-full">
-                        {currentFilters.length}
+                    <button
+                      onClick={() => toggleFieldExpansion(field.key)}
+                      className="flex items-center gap-2 flex-1 text-left"
+                    >
+                      <span className={`text-sm font-medium ${
+                        isActivated ? 'text-blue-700' : 
+                        currentActiveFilters.length > 0 ? 'text-green-700' :
+                        'text-gray-700'
+                      }`}>
+                        {field.label}
+                        {isActivated && <span className="ml-2 text-xs">(From table)</span>}
                       </span>
-                    )}
+                    </button>
+                    
+                    <div className="flex items-center gap-2">
+                      {currentTempFilters.length > 0 && (
+                        <span className="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded-full">
+                          {currentTempFilters.length} selected
+                        </span>
+                      )}
+                      {currentActiveFilters.length > 0 && (
+                        <span className="bg-green-100 text-green-800 text-xs px-2 py-0.5 rounded-full">
+                          Active
+                        </span>
+                      )}
+                      <button
+                        onClick={() => toggleFieldExpansion(field.key)}
+                        className="p-1 hover:bg-white rounded transition-colors"
+                      >
+                        {isExpanded ? '−' : '+'}
+                      </button>
+                    </div>
                   </div>
                   
                   {isExpanded && (
-                    <div className="ml-6 space-y-2">
+                    <div className="space-y-3 border-t border-gray-200 pt-3">
                       {/* Filter condition selector */}
-                      <div className="flex items-center gap-2">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">
+                          Filter Type
+                        </label>
                         <select 
-                          className="text-sm border border-gray-300 rounded px-2 py-1 flex-1"
+                          className="w-full text-sm border border-gray-300 rounded px-2 py-1 focus:ring-1 focus:ring-blue-500"
                           onChange={(e) => {
-                            // Handle condition change
+                            const condition = e.target.value;
+                            const input = e.target.parentElement.nextElementSibling.querySelector('input');
+                            if (input && input.value) {
+                              handleConditionFilter(field.key, condition, input.value);
+                            }
                           }}
                         >
-                          <option value="contains">contains</option>
-                          <option value="is">is</option>
-                          <option value="starts_with">starts with</option>
-                          <option value="ends_with">ends with</option>
+                          <option value="contains">Contains</option>
+                          <option value="is">Is exactly</option>
+                          <option value="starts_with">Starts with</option>
+                          <option value="ends_with">Ends with</option>
                         </select>
                       </div>
                       
-                      {/* Input for filter value */}
+                      {/* Quick text filter */}
                       <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">
+                          Filter Value
+                        </label>
                         <input
                           type="text"
-                          placeholder="Type here"
-                          className="w-full text-sm border border-gray-300 rounded px-2 py-1 focus:ring-1 focus:ring-blue-500"
+                          placeholder="Type to filter values..."
+                          className="w-full text-sm border border-gray-300 rounded px-3 py-2 focus:ring-1 focus:ring-blue-500"
                           onChange={(e) => {
-                            // Handle text input filtering
-                            const value = e.target.value;
-                            if (value) {
-                              const filteredValues = uniqueValues.filter(val => 
-                                val.toString().toLowerCase().includes(value.toLowerCase())
-                              );
-                              onFilterChange(field.key, filteredValues);
-                            } else {
-                              onFilterChange(field.key, []);
-                            }
+                            const condition = e.target.parentElement.previousElementSibling.querySelector('select').value;
+                            handleConditionFilter(field.key, condition, e.target.value);
                           }}
                         />
                       </div>
                       
                       {/* Available values */}
-                      <div className="max-h-32 overflow-y-auto bg-gray-50 p-2 rounded border">
-                        {uniqueValues.slice(0, 15).map(value => (
-                          <label key={value} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-white p-1 rounded">
-                            <input
-                              type="checkbox"
-                              checked={currentFilters.includes(value)}
-                              onChange={() => handleValueToggle(field.key, value)}
-                              className="w-3.5 h-3.5 text-blue-600 rounded focus:ring-blue-500 border-gray-300"
-                            />
-                            <span className="truncate">{value}</span>
-                          </label>
-                        ))}
-                        {uniqueValues.length > 15 && (
-                          <p className="text-xs text-gray-500 mt-1 text-center">
-                            +{uniqueValues.length - 15} more values...
-                          </p>
-                        )}
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-2">
+                          Select Values ({uniqueValues.length} available)
+                        </label>
+                        <div className="max-h-40 overflow-y-auto bg-white border border-gray-200 rounded p-2">
+                          {uniqueValues.slice(0, 20).map(value => (
+                            <label key={value} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-gray-50 p-1 rounded">
+                              <input
+                                type="checkbox"
+                                checked={currentTempFilters.includes(value)}
+                                onChange={() => handleValueToggle(field.key, value)}
+                                className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500 border-gray-300"
+                              />
+                              <span className="truncate flex-1">{value}</span>
+                            </label>
+                          ))}
+                          {uniqueValues.length > 20 && (
+                            <p className="text-xs text-gray-500 mt-2 text-center border-t border-gray-100 pt-2">
+                              +{uniqueValues.length - 20} more values (use quick filter above)
+                            </p>
+                          )}
+                        </div>
                       </div>
                     </div>
                   )}
@@ -229,6 +354,35 @@ const FilterSidebar = ({
               </div>
             )}
           </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="p-3 border-t border-gray-200 bg-gray-50">
+          <div className="flex gap-2">
+            <button
+              onClick={handleCancelFilters}
+              className="flex-1 px-3 py-1.5 border border-gray-300 text-gray-700 rounded text-sm hover:bg-gray-100 transition-colors font-medium flex items-center justify-center gap-1"
+            >
+              <RotateCcw size={14} />
+              Cancel & Clear
+            </button>
+            <button
+              onClick={handleApplyFilters}
+              disabled={!hasAnyTempFilters}
+              className="flex-1 px-3 py-1.5 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors font-medium flex items-center justify-center gap-1"
+            >
+              <Filter size={14} />
+              Apply Filters
+            </button>
+          </div>
+          
+          {hasAnyTempFilters && (
+            <div className="mt-1.5 text-center">
+              <span className="text-xs text-gray-600">
+                {Object.keys(tempFilters).filter(key => tempFilters[key]?.length > 0).length} field(s) will be filtered
+              </span>
+            </div>
+          )}
         </div>
       </div>
     </>

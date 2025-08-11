@@ -16,7 +16,9 @@ import {
   Menu,
   Filter,
   Pin,
-  Upload
+  Upload,
+  FileSpreadsheet,
+  RefreshCw
 } from 'lucide-react';
 import ExcelFilter from './ExcelFilter';
 import FilterSidebar from './FilterSidebar';
@@ -35,6 +37,7 @@ const ClaimsTable = ({ sidebarOpen = true, onToggleSidebar }) => {
   const [showFilterSidebar, setShowFilterSidebar] = useState(false);
   const [activatedFilterField, setActivatedFilterField] = useState(null);
   const [importedClaims, setImportedClaims] = useState([]);
+  const [showExportMenu, setShowExportMenu] = useState(false);
 
   // Load imported claims from localStorage
   useEffect(() => {
@@ -42,6 +45,20 @@ const ClaimsTable = ({ sidebarOpen = true, onToggleSidebar }) => {
     // setImportedClaims(imported);
     setImportedClaims([]); // For now, just use empty array
   }, []);
+
+  // Close export menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showExportMenu && !event.target.closest('.export-dropdown')) {
+        setShowExportMenu(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showExportMenu]);
  
   // Enhanced sample claims data - More records for pagination testing
   const baseSampleClaims = [
@@ -865,6 +882,117 @@ const ClaimsTable = ({ sidebarOpen = true, onToggleSidebar }) => {
     setActivatedFilterField(columnKey);
     setShowFilterSidebar(true);
   };
+
+  // Export functions
+  const exportToCSV = (data, filename = 'claims_export.csv') => {
+    // Get all visible columns for export
+    const headers = allVisibleColumns.map(col => col.title);
+    const keys = allVisibleColumns.map(col => col.key);
+    
+    // Create CSV content
+    const csvContent = [
+      headers.join(','), // Header row
+      ...data.map(row => 
+        keys.map(key => {
+          const value = row[key];
+          // Handle null/undefined values
+          if (value === null || value === undefined) return '';
+          // Handle values that might contain commas
+          if (typeof value === 'string' && (value.includes(',') || value.includes('"'))) {
+            return `"${value.replace(/"/g, '""')}"`;
+          }
+          return value;
+        }).join(',')
+      )
+    ].join('\n');
+    
+    // Create and download file
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  };
+
+  const exportToExcel = (data, filename = 'claims_export.xlsx') => {
+    // Create Excel-compatible CSV with BOM for proper encoding
+    const headers = allVisibleColumns.map(col => col.title);
+    const keys = allVisibleColumns.map(col => col.key);
+    
+    const csvContent = [
+      headers.join('\t'), // Use tab separator for Excel
+      ...data.map(row => 
+        keys.map(key => {
+          const value = row[key];
+          if (value === null || value === undefined) return '';
+          return value;
+        }).join('\t')
+      )
+    ].join('\n');
+    
+    // Add BOM for proper Excel encoding
+    const BOM = '\uFEFF';
+    const blob = new Blob([BOM + csvContent], { 
+      type: 'application/vnd.ms-excel;charset=utf-8;' 
+    });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename.replace('.xlsx', '.xls'); // Use .xls for better compatibility
+    
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  };
+
+  const handleExport = (format) => {
+    const dataToExport = selectedClaims.size > 0 
+      ? filteredAndSortedData.filter(claim => selectedClaims.has(claim.id))
+      : filteredAndSortedData;
+    
+    const timestamp = new Date().toISOString().split('T')[0];
+    const recordCount = dataToExport.length;
+    const exportType = selectedClaims.size > 0 ? 'selected' : 'all';
+    
+    if (format === 'csv') {
+      exportToCSV(dataToExport, `claims_${exportType}_${recordCount}_${timestamp}.csv`);
+    } else if (format === 'excel') {
+      exportToExcel(dataToExport, `claims_${exportType}_${recordCount}_${timestamp}.xlsx`);
+    }
+    
+    setShowExportMenu(false);
+  };
+
+  // Refresh function
+  const handleRefresh = () => {
+    // Reset all states to refresh the view
+    setSelectedClaims(new Set());
+    setCurrentPage(1);
+    setActiveFilters({});
+    setSortConfig({ key: null, direction: null });
+    setShowFilterSidebar(false);
+    setShowExportMenu(false);
+    
+    // Reload imported claims from localStorage
+    // const imported = ClaimImportService.getImportedClaims();
+    // setImportedClaims(imported);
+    setImportedClaims([]);
+    
+    // You could also add a success message here
+    console.log('Claims data refreshed');
+  };
+
+  // Open filter sidebar
+  const handleOpenFilters = () => {
+    setShowFilterSidebar(true);
+    setActivatedFilterField(null); // Don't activate any specific field
+  };
  
   // Handle row selection
   const toggleRowSelection = (claimId) => {
@@ -962,6 +1090,26 @@ const ClaimsTable = ({ sidebarOpen = true, onToggleSidebar }) => {
                 </div>
               )}
               
+              {/* Refresh Button */}
+              <button 
+                onClick={handleRefresh}
+                className="flex items-center gap-2 px-3 py-2 border border-gray-300 text-gray-700 rounded hover:bg-gray-50 transition-colors"
+                title="Refresh claims data"
+              >
+                <RefreshCw size={16} />
+                Refresh
+              </button>
+              
+              {/* Filter Button */}
+              <button 
+                onClick={handleOpenFilters}
+                className="flex items-center gap-2 px-3 py-2 border border-gray-300 text-gray-700 rounded hover:bg-gray-50 transition-colors"
+                title="Filter claims"
+              >
+                <Filter size={16} />
+                Filter Claims
+              </button>
+              
               <a 
                 href="/claims/import"
                 className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors text-decoration-none"
@@ -970,10 +1118,63 @@ const ClaimsTable = ({ sidebarOpen = true, onToggleSidebar }) => {
                 Import Claims
               </a>
               
-              <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors">
-                <Download size={16} />
-                Export
-              </button>
+              {/* Export Dropdown */}
+              <div className="relative export-dropdown">
+                <button 
+                  onClick={() => setShowExportMenu(!showExportMenu)}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+                >
+                  <Download size={16} />
+                  Export
+                  <ChevronDown size={14} className={`transition-transform ${showExportMenu ? 'rotate-180' : ''}`} />
+                </button>
+                
+                {showExportMenu && (
+                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+                    <div className="p-2">
+                      <div className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-100">
+                        Export Options
+                      </div>
+                      
+                      <button
+                        onClick={() => handleExport('csv')}
+                        className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded transition-colors mt-1"
+                      >
+                        <div className="w-8 h-8 bg-green-100 rounded flex items-center justify-center">
+                          <Download size={14} className="text-green-600" />
+                        </div>
+                        <div className="flex-1 text-left">
+                          <div className="font-medium">Download as CSV</div>
+                          <div className="text-xs text-gray-500">
+                            {selectedClaims.size > 0 ? `${selectedClaims.size} selected records` : `${filteredAndSortedData.length} records`}
+                          </div>
+                        </div>
+                      </button>
+                      
+                      <button
+                        onClick={() => handleExport('excel')}
+                        className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded transition-colors"
+                      >
+                        <div className="w-8 h-8 bg-blue-100 rounded flex items-center justify-center">
+                          <FileSpreadsheet size={14} className="text-blue-600" />
+                        </div>
+                        <div className="flex-1 text-left">
+                          <div className="font-medium">Download as Excel</div>
+                          <div className="text-xs text-gray-500">
+                            {selectedClaims.size > 0 ? `${selectedClaims.size} selected records` : `${filteredAndSortedData.length} records`}
+                          </div>
+                        </div>
+                      </button>
+                      
+                      <div className="border-t border-gray-100 mt-2 pt-2">
+                        <div className="px-3 py-1 text-xs text-gray-500">
+                          💡 {selectedClaims.size > 0 ? 'Selected records will be exported' : 'All visible records will be exported'}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -1270,22 +1471,57 @@ const ClaimsTable = ({ sidebarOpen = true, onToggleSidebar }) => {
             </button>
             
             {/* Page input for quick navigation */}
-            <div className="flex items-center gap-2 ml-4">
-              <span className="text-sm text-gray-600">Go to:</span>
+            <div className="flex items-center gap-2 ml-4 border-l border-gray-300 pl-4">
+              <span className="text-sm text-gray-600">Current: <span className="font-semibold text-blue-600">{currentPage}</span></span>
+              <span className="text-gray-300">|</span>
+              <span className="text-sm text-gray-600 font-medium">Go to page:</span>
               <input
                 type="number"
                 min={1}
                 max={totalPages}
-                value={currentPage}
-                onChange={(e) => {
-                  const page = parseInt(e.target.value);
-                  if (page >= 1 && page <= totalPages) {
-                    setCurrentPage(page);
+                defaultValue=""
+                placeholder="Enter page"
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter') {
+                    const page = parseInt(e.target.value);
+                    if (page >= 1 && page <= totalPages) {
+                      setCurrentPage(page);
+                      e.target.value = ''; // Clear after successful navigation
+                    } else {
+                      alert(`Please enter a page number between 1 and ${totalPages}`);
+                    }
                   }
                 }}
-                className="w-16 px-2 py-1 border border-gray-300 rounded text-sm text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
+                onInput={(e) => {
+                  const value = parseInt(e.target.value);
+                  // Prevent entering numbers above total pages
+                  if (value > totalPages) {
+                    e.target.value = totalPages;
+                  }
+                  // Prevent entering numbers below 1
+                  if (value < 1 && e.target.value !== '') {
+                    e.target.value = 1;
+                  }
+                }}
+                className="w-20 px-3 py-2 border border-gray-300 rounded-lg text-sm text-center focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors pagination-input"
               />
-              <span className="text-sm text-gray-600">of {totalPages}</span>
+              <span className="text-sm text-gray-600">of <span className="font-medium text-gray-800">{totalPages}</span></span>
+              <button
+                onClick={() => {
+                  const input = document.querySelector('.pagination-input');
+                  const page = parseInt(input.value);
+                  if (page >= 1 && page <= totalPages) {
+                    setCurrentPage(page);
+                    input.value = ''; // Clear after successful navigation
+                  } else if (input.value !== '') {
+                    alert(`Please enter a page number between 1 and ${totalPages}`);
+                  }
+                }}
+                className="px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                title="Go to page"
+              >
+                Go
+              </button>
             </div>
           </div>
         </div>
