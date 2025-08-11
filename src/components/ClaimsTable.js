@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   ChevronDown,
   ChevronRight,
@@ -15,10 +15,12 @@ import {
   TrendingUp,
   Menu,
   Filter,
-  Pin
+  Pin,
+  Upload
 } from 'lucide-react';
 import ExcelFilter from './ExcelFilter';
 import FilterSidebar from './FilterSidebar';
+// import ClaimImportService from '../services/ClaimImportService';
  
 const ClaimsTable = ({ sidebarOpen = true, onToggleSidebar }) => {
   // State management
@@ -32,9 +34,17 @@ const ClaimsTable = ({ sidebarOpen = true, onToggleSidebar }) => {
   const [hiddenColumns, setHiddenColumns] = useState(new Set());
   const [showFilterSidebar, setShowFilterSidebar] = useState(false);
   const [activatedFilterField, setActivatedFilterField] = useState(null);
+  const [importedClaims, setImportedClaims] = useState([]);
+
+  // Load imported claims from localStorage
+  useEffect(() => {
+    // const imported = ClaimImportService.getImportedClaims();
+    // setImportedClaims(imported);
+    setImportedClaims([]); // For now, just use empty array
+  }, []);
  
   // Enhanced sample claims data - More records for pagination testing
-  const sampleClaims = [
+  const baseSampleClaims = [
     {
       id: 'CLM001',
       patientId: 'PAT12345',
@@ -636,6 +646,9 @@ const ClaimsTable = ({ sidebarOpen = true, onToggleSidebar }) => {
       department: 'Rheumatology'
     }
   ];
+
+  // Combine base claims with imported claims
+  const sampleClaims = [...baseSampleClaims, ...importedClaims];
  
   // Enhanced column configuration with default visible columns
   const columnGroups = {
@@ -792,7 +805,7 @@ const ClaimsTable = ({ sidebarOpen = true, onToggleSidebar }) => {
     }
  
     return filtered;
-  }, [activeFilters, sortConfig]);
+  }, [activeFilters, sortConfig, sampleClaims]);
  
   // Toggle group expansion
   const toggleGroup = (groupId) => {
@@ -948,6 +961,14 @@ const ClaimsTable = ({ sidebarOpen = true, onToggleSidebar }) => {
                   {selectedClaims.size} selected
                 </div>
               )}
+              
+              <a 
+                href="/claims/import"
+                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors text-decoration-none"
+              >
+                <Upload size={16} />
+                Import Claims
+              </a>
               
               <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors">
                 <Download size={16} />

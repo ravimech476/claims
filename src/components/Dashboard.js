@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Routes, Route, useLocation } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import ClaimsTable from './ClaimsTable';
+import ClaimImportPageSimple from './ClaimImportPageSimple';
 import EmptyPage from './EmptyPage';
 import { Menu } from 'lucide-react';
 
@@ -20,6 +21,8 @@ const Dashboard = ({ onLogout }) => {
       case '/':
       case '/claims':
         return 'Claims Management';
+      case '/claims/import':
+        return 'Import Claims';
       case '/dashboard':
         return 'Dashboard';
       case '/members':
@@ -89,6 +92,7 @@ const Dashboard = ({ onLogout }) => {
           <Routes>
             <Route path="/" element={<ClaimsTable sidebarOpen={sidebarOpen} onToggleSidebar={toggleSidebar} />} />
             <Route path="/claims" element={<ClaimsTable sidebarOpen={sidebarOpen} onToggleSidebar={toggleSidebar} />} />
+            <Route path="/claims/import" element={<ClaimImportPageSimple />} />
             <Route path="/dashboard" element={<EmptyPage title="Dashboard" />} />
             <Route path="/members" element={<EmptyPage title="Members Management" />} />
             <Route path="/providers" element={<EmptyPage title="Providers Management" />} />
