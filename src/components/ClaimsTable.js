@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
   ChevronDown,
   ChevronRight,
@@ -18,7 +18,8 @@ import {
   Pin,
   Upload,
   FileSpreadsheet,
-  RefreshCw
+  RefreshCw,
+  Search
 } from 'lucide-react';
 import ExcelFilter from './ExcelFilter';
 import FilterSidebar from './FilterSidebar';
@@ -1061,6 +1062,18 @@ const ClaimsTable = ({ sidebarOpen = true, onToggleSidebar }) => {
   };
  
   return (
+    <>
+      {/* Add custom CSS for hiding scrollbars */}
+      <style jsx>{`
+        .scrollbar-hide {
+          -ms-overflow-style: none; /* IE and Edge */
+          scrollbar-width: none; /* Firefox */
+        }
+        .scrollbar-hide::-webkit-scrollbar {
+          display: none; /* Chrome, Safari, Opera */
+        }
+      `}</style>
+      
     <div className="min-h-screen bg-gray-50 relative">
       {/* Floating toggle button for collapsed sidebar - only show when sidebar is collapsed */}
       {!sidebarOpen && onToggleSidebar && (
@@ -1180,124 +1193,174 @@ const ClaimsTable = ({ sidebarOpen = true, onToggleSidebar }) => {
         </div>
       </div>
  
-      {/* Table Container */}
-      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-        {/* Table with dynamic height - no initial scrollbar */}
-        <div className="overflow-x-auto" style={{ maxHeight: 'calc(100vh - 200px)' }}>
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200 sticky top-0 z-10">
-              {/* Group Headers Row */}
+      {/* Claims Table with Advanced Grouping */}
+      <div className="bg-white rounded-lg border border-gray-200 shadow-sm h-[650px] flex flex-col">
+        {/* FIXED HEADERS SECTION - Horizontally Scrollable (Hidden Scrollbar) */}
+        <div
+          className="flex-shrink-0 overflow-y-hidden scrollbar-hide"
+          style={{
+            scrollbarWidth: "none" /* Firefox */,
+            msOverflowStyle: "none" /* IE and Edge */,
+          }}
+          onScroll={(e) => {
+            // Sync body scroll with header scroll
+            const bodyContainer = e.target.parentElement.querySelector(
+              ".body-scroll-container"
+            );
+            if (bodyContainer) {
+              bodyContainer.scrollLeft = e.target.scrollLeft;
+            }
+          }}
+        >
+          <table className="w-full table-fixed">
+            <thead>
+              {/* Group Headers */}
               <tr>
-                <th className="w-12 p-3 border-r border-gray-200 bg-gray-50"></th>
-                {Object.values(columnGroups).map((group) => {
+                <th
+                  className="bg-gray-50 border-b border-gray-200 p-3 text-left sticky left-0 z-10"
+                  style={{ width: "48px" }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={
+                      selectedClaims.size === filteredAndSortedData.length &&
+                      filteredAndSortedData.length > 0
+                    }
+                    onChange={toggleSelectAll}
+                    className="rounded border-gray-300"
+                  />
+                </th>
+                {Object.values(columnGroups).map((group, index) => {
                   const visibleColumns = getVisibleColumnsForGroup(group);
                   const isExpanded = expandedGroups.has(group.id);
-                 
+                  
                   if (visibleColumns.length === 0) return null;
                   
+                  // Calculate total width for the group based on visible columns
+                  const groupWidth = isExpanded
+                    ? group.columns.reduce(
+                        (total, col) => total + parseInt(col.width),
+                        0
+                      )
+                    : parseInt(
+                        group.columns.find(
+                          (col) => col.key === group.defaultColumn
+                        )?.width || "120"
+                      );
+
                   return (
                     <th
                       key={group.id}
                       colSpan={visibleColumns.length}
-                      className="px-4 py-3 text-left border-r border-gray-200 bg-gray-50"
+                      className={`bg-${group.color}-100 border-b border-gray-200 px-3 text-left font-semibold transition-all h-[40px] duration-300`}
+                      style={{ width: `${groupWidth}px` }}
                     >
                       <button
                         onClick={() => toggleGroup(group.id)}
-                        className="flex items-center gap-2 hover:bg-gray-100 px-2 py-1 rounded transition-colors w-full justify-between"
+                        className="flex items-center gap-2 hover:opacity-80 transition-opacity w-full"
                       >
-                        <div className="flex items-center gap-2">
-                          {isExpanded ? (
-                            <ChevronDown className="w-4 h-4 text-gray-500" />
-                          ) : (
-                            <ChevronRight className="w-4 h-4 text-gray-500" />
-                          )}
-                          <span className="text-sm">{group.icon}</span>
-                          <span className="font-medium text-gray-700 text-sm">
-                            {group.title}
-                          </span>
-                        </div>
-                        <span className="text-xs text-gray-500 bg-gray-200 px-2 py-0.5 rounded">
-                          {visibleColumns.length}/{group.columns.length}
+                        {isExpanded ? (
+                          <ChevronDown className="w-4 h-4" />
+                        ) : (
+                          <ChevronRight className="w-4 h-4" />
+                        )}
+                        <span className={`bg-${group.color}-50 border-${group.color}-200 text-${group.color}-800 px-3 rounded-full text-sm`}>
+                          {group.title}
                         </span>
+                        <span className="text-sm">{group.icon}</span>
                       </button>
                     </th>
                   );
                 })}
               </tr>
-             
-              {/* Column Headers Row */}
+
+              {/* Sub Headers */}
               <tr>
-                <th className="w-12 p-3 border-r border-gray-200 bg-gray-50">
-                  <input
-                    type="checkbox"
-                    checked={selectedClaims.size === filteredAndSortedData.length && filteredAndSortedData.length > 0}
-                    onChange={toggleSelectAll}
-                    className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500 border-gray-300"
-                  />
+                <th
+                  className="bg-gray-100 border-b border-gray-200 p-3 text-xs text-gray-600 font-medium sticky left-0 z-10"
+                  style={{ width: "48px" }}
+                >
                 </th>
-                {allVisibleColumns.map((column, index) => (
+                {allVisibleColumns.map((column) => (
                   <th
-                    key={`${column.key}-${index}`}
-                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200 bg-gray-50"
-                    style={{
-                      width: column.width,
-                      minWidth: column.width
-                    }}
+                    key={`${column.key}`}
+                    className="bg-gray-100 border-b border-gray-200 p-3 text-left text-xs text-gray-600 font-medium transition-all duration-300 relative"
+                    style={{ width: column.width }}
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-1">
                         {pinnedColumns.has(column.key) && (
                           <Pin size={12} className="text-blue-500" />
                         )}
-                        <span className="font-medium text-gray-700">{column.title}</span>
+                        <span>{column.title}</span>
                         {sortConfig.key === column.key && (
                           <span className="text-blue-500">
                             {sortConfig.direction === 'asc' ? '↑' : '↓'}
                           </span>
                         )}
                       </div>
-                      <ExcelFilter
-                        column={column}
-                        data={filteredAndSortedData}
-                        onFilterChange={handleFilterChange}
-                        activeFilters={activeFilters}
-                        onSortChange={handleSortChange}
-                        sortDirection={sortConfig.key === column.key ? sortConfig.direction : null}
-                        onPinColumn={handlePinColumn}
-                        onHideColumn={handleHideColumn}
-                        onFilterByClick={handleFilterByClick}
-                        isPinned={pinnedColumns.has(column.key)}
-                      />
+                      <div className="flex items-center gap-1">
+                        <ExcelFilter
+                          column={column}
+                          data={filteredAndSortedData}
+                          onFilterChange={handleFilterChange}
+                          activeFilters={activeFilters}
+                          onSortChange={handleSortChange}
+                          sortDirection={sortConfig.key === column.key ? sortConfig.direction : null}
+                          onPinColumn={handlePinColumn}
+                          onHideColumn={handleHideColumn}
+                          onFilterByClick={handleFilterByClick}
+                          isPinned={pinnedColumns.has(column.key)}
+                        />
+                      </div>
                     </div>
                   </th>
                 ))}
               </tr>
             </thead>
-           
-            <tbody className="bg-white divide-y divide-gray-200">
-              {paginatedClaims.map((claim, index) => (
+          </table>
+        </div>
+
+        {/* SCROLLABLE BODY SECTION */}
+        <div
+          className="flex-1 overflow-auto body-scroll-container"
+          onScroll={(e) => {
+            // Sync header scroll with body scroll (only horizontal)
+            const headerContainer =
+              e.target.parentElement.querySelector(".flex-shrink-0");
+            if (
+              headerContainer &&
+              Math.abs(headerContainer.scrollLeft - e.target.scrollLeft) > 1
+            ) {
+              headerContainer.scrollLeft = e.target.scrollLeft;
+            }
+          }}
+        >
+          <table className="w-full table-fixed">
+            <tbody>
+              {paginatedClaims.map((claim, rowIndex) => (
                 <tr
                   key={claim.id}
                   className={`hover:bg-gray-50 transition-colors ${
-                    selectedClaims.has(claim.id) ? 'bg-blue-50' : ''
+                    selectedClaims.has(claim.id) ? "bg-blue-50" : ""
                   }`}
                 >
-                  <td className="p-3 border-r border-gray-200">
+                  <td
+                    className="border-b border-gray-100 p-3 sticky left-0 z-10 bg-white"
+                    style={{ width: "48px" }}
+                  >
                     <input
                       type="checkbox"
                       checked={selectedClaims.has(claim.id)}
                       onChange={() => toggleRowSelection(claim.id)}
-                      className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500 border-gray-300"
+                      className="rounded border-gray-300"
                     />
                   </td>
-                  {allVisibleColumns.map((column, colIndex) => (
+                  {allVisibleColumns.map((column) => (
                     <td
-                      key={`${column.key}-${colIndex}`}
-                      className="px-4 py-3 text-sm text-gray-900 border-r border-gray-200"
-                      style={{
-                        width: column.width,
-                        minWidth: column.width
-                      }}
+                      key={`${rowIndex}-${column.key}`}
+                      className="border-b border-gray-100 p-3 text-sm transition-all duration-300"
+                      style={{ width: column.width }}
                     >
                       {renderCellContent(claim, column)}
                     </td>
@@ -1313,219 +1376,228 @@ const ClaimsTable = ({ sidebarOpen = true, onToggleSidebar }) => {
             </div>
           )}
         </div>
-        
-        {/* Pagination Controls - Bottom Right */}
-        <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200 bg-white">
-          {/* Left side - Results info */}
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-gray-700">
-              Showing {startIndex + 1} to {endIndex} of {filteredAndSortedData.length} results
-            </span>
+
+        {/* FIXED FOOTER - Enhanced Pagination */}
+        <div className="bg-gray-50 px-6 py-3 border-t border-gray-200">
+          <div className="flex items-center justify-between text-sm text-gray-600">
+            {/* Left side - Results info */}
+            <div className="flex items-center gap-4">
+              <span className="text-sm text-gray-700">
+                Showing {startIndex + 1} to {endIndex} of {filteredAndSortedData.length} results
+              </span>
+              
+              {/* Page size selector */}
+              <div className="flex items-center gap-2">
+                <label className="text-sm text-gray-600">Show:</label>
+                <select
+                  value={pageSize}
+                  onChange={(e) => {
+                    setPageSize(Number(e.target.value));
+                    setCurrentPage(1);
+                  }}
+                  className="border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value={10}>10</option>
+                  <option value={25}>25</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                </select>
+                <span className="text-sm text-gray-600">per page</span>
+              </div>
+              
+              {selectedClaims.size > 0 && (
+                <span className="ml-4 text-blue-600 font-medium">
+                  {selectedClaims.size} selected
+                </span>
+              )}
+            </div>
             
-            {/* Page size selector */}
+            {/* Right side - Pagination controls */}
             <div className="flex items-center gap-2">
-              <label className="text-sm text-gray-600">Show:</label>
-              <select
-                value={pageSize}
-                onChange={(e) => {
-                  setPageSize(Number(e.target.value));
-                  setCurrentPage(1);
-                }}
-                className="border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              {/* First page */}
+              <button
+                onClick={() => setCurrentPage(1)}
+                disabled={currentPage === 1}
+                className={`p-2 rounded ${
+                  currentPage === 1
+                    ? 'text-gray-400 cursor-not-allowed'
+                    : 'text-gray-600 hover:bg-gray-100'
+                }`}
+                title="First page"
               >
-                <option value={10}>10</option>
-                <option value={25}>25</option>
-                <option value={50}>50</option>
-                <option value={100}>100</option>
-              </select>
-              <span className="text-sm text-gray-600">per page</span>
-            </div>
-          </div>
-          
-          {/* Right side - Pagination controls */}
-          <div className="flex items-center gap-2">
-            {/* First page */}
-            <button
-              onClick={() => setCurrentPage(1)}
-              disabled={currentPage === 1}
-              className={`p-2 rounded ${
-                currentPage === 1
-                  ? 'text-gray-400 cursor-not-allowed'
-                  : 'text-gray-600 hover:bg-gray-100'
-              }`}
-              title="First page"
-            >
-              <ChevronFirst size={16} />
-            </button>
-            
-            {/* Previous page */}
-            <button
-              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-              disabled={currentPage === 1}
-              className={`p-2 rounded ${
-                currentPage === 1
-                  ? 'text-gray-400 cursor-not-allowed'
-                  : 'text-gray-600 hover:bg-gray-100'
-              }`}
-              title="Previous page"
-            >
-              <ChevronLeft size={16} />
-            </button>
-            
-            {/* Page numbers */}
-            <div className="flex items-center gap-1">
-              {(() => {
-                const pages = [];
-                const maxVisiblePages = 5;
-                let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
-                let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
-                
-                // Adjust start page if we're near the end
-                if (endPage - startPage + 1 < maxVisiblePages) {
-                  startPage = Math.max(1, endPage - maxVisiblePages + 1);
-                }
-                
-                // Show first page and ellipsis if needed
-                if (startPage > 1) {
-                  pages.push(
-                    <button
-                      key={1}
-                      onClick={() => setCurrentPage(1)}
-                      className="px-3 py-1 rounded text-sm text-gray-600 hover:bg-gray-100"
-                    >
-                      1
-                    </button>
-                  );
-                  if (startPage > 2) {
-                    pages.push(
-                      <span key="ellipsis1" className="px-2 text-gray-400">...</span>
-                    );
+                <ChevronFirst size={16} />
+              </button>
+              
+              {/* Previous page */}
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+                className={`p-2 rounded ${
+                  currentPage === 1
+                    ? 'text-gray-400 cursor-not-allowed'
+                    : 'text-gray-600 hover:bg-gray-100'
+                }`}
+                title="Previous page"
+              >
+                <ChevronLeft size={16} />
+              </button>
+              
+              {/* Page numbers */}
+              <div className="flex items-center gap-1">
+                {(() => {
+                  const pages = [];
+                  const maxVisiblePages = 5;
+                  let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+                  let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+                  
+                  // Adjust start page if we're near the end
+                  if (endPage - startPage + 1 < maxVisiblePages) {
+                    startPage = Math.max(1, endPage - maxVisiblePages + 1);
                   }
-                }
-                
-                // Show visible page range
-                for (let i = startPage; i <= endPage; i++) {
-                  pages.push(
-                    <button
-                      key={i}
-                      onClick={() => setCurrentPage(i)}
-                      className={`px-3 py-1 rounded text-sm ${
-                        i === currentPage
-                          ? 'bg-blue-600 text-white'
-                          : 'text-gray-600 hover:bg-gray-100'
-                      }`}
-                    >
-                      {i}
-                    </button>
-                  );
-                }
-                
-                // Show ellipsis and last page if needed
-                if (endPage < totalPages) {
-                  if (endPage < totalPages - 1) {
+                  
+                  // Show first page and ellipsis if needed
+                  if (startPage > 1) {
                     pages.push(
-                      <span key="ellipsis2" className="px-2 text-gray-400">...</span>
+                      <button
+                        key={1}
+                        onClick={() => setCurrentPage(1)}
+                        className="px-3 py-1 rounded text-sm text-gray-600 hover:bg-gray-100"
+                      >
+                        1
+                      </button>
                     );
-                  }
-                  pages.push(
-                    <button
-                      key={totalPages}
-                      onClick={() => setCurrentPage(totalPages)}
-                      className="px-3 py-1 rounded text-sm text-gray-600 hover:bg-gray-100"
-                    >
-                      {totalPages}
-                    </button>
-                  );
-                }
-                
-                return pages;
-              })()}
-            </div>
-            
-            {/* Next page */}
-            <button
-              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-              disabled={currentPage === totalPages}
-              className={`p-2 rounded ${
-                currentPage === totalPages
-                  ? 'text-gray-400 cursor-not-allowed'
-                  : 'text-gray-600 hover:bg-gray-100'
-              }`}
-              title="Next page"
-            >
-              <ChevronRight size={16} />
-            </button>
-            
-            {/* Last page */}
-            <button
-              onClick={() => setCurrentPage(totalPages)}
-              disabled={currentPage === totalPages}
-              className={`p-2 rounded ${
-                currentPage === totalPages
-                  ? 'text-gray-400 cursor-not-allowed'
-                  : 'text-gray-600 hover:bg-gray-100'
-              }`}
-              title="Last page"
-            >
-              <ChevronLast size={16} />
-            </button>
-            
-            {/* Page input for quick navigation */}
-            <div className="flex items-center gap-2 ml-4 border-l border-gray-300 pl-4">
-              <span className="text-sm text-gray-600">Current: <span className="font-semibold text-blue-600">{currentPage}</span></span>
-              <span className="text-gray-300">|</span>
-              <span className="text-sm text-gray-600 font-medium">Go to page:</span>
-              <input
-                type="number"
-                min={1}
-                max={totalPages}
-                defaultValue=""
-                placeholder="Enter page"
-                onKeyPress={(e) => {
-                  if (e.key === 'Enter') {
-                    const page = parseInt(e.target.value);
-                    if (page >= 1 && page <= totalPages) {
-                      setCurrentPage(page);
-                      e.target.value = ''; // Clear after successful navigation
-                    } else {
-                      alert(`Please enter a page number between 1 and ${totalPages}`);
+                    if (startPage > 2) {
+                      pages.push(
+                        <span key="ellipsis1" className="px-2 text-gray-400">...</span>
+                      );
                     }
                   }
-                }}
-                onInput={(e) => {
-                  const value = parseInt(e.target.value);
-                  // Prevent entering numbers above total pages
-                  if (value > totalPages) {
-                    e.target.value = totalPages;
+                  
+                  // Show visible page range
+                  for (let i = startPage; i <= endPage; i++) {
+                    pages.push(
+                      <button
+                        key={i}
+                        onClick={() => setCurrentPage(i)}
+                        className={`px-3 py-1 rounded text-sm ${
+                          i === currentPage
+                            ? 'bg-blue-600 text-white'
+                            : 'text-gray-600 hover:bg-gray-100'
+                        }`}
+                      >
+                        {i}
+                      </button>
+                    );
                   }
-                  // Prevent entering numbers below 1
-                  if (value < 1 && e.target.value !== '') {
-                    e.target.value = 1;
+                  
+                  // Show ellipsis and last page if needed
+                  if (endPage < totalPages) {
+                    if (endPage < totalPages - 1) {
+                      pages.push(
+                        <span key="ellipsis2" className="px-2 text-gray-400">...</span>
+                      );
+                    }
+                    pages.push(
+                      <button
+                        key={totalPages}
+                        onClick={() => setCurrentPage(totalPages)}
+                        className="px-3 py-1 rounded text-sm text-gray-600 hover:bg-gray-100"
+                      >
+                        {totalPages}
+                      </button>
+                    );
                   }
-                }}
-                className="w-20 px-3 py-2 border border-gray-300 rounded-lg text-sm text-center focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors pagination-input"
-              />
-              <span className="text-sm text-gray-600">of <span className="font-medium text-gray-800">{totalPages}</span></span>
+                  
+                  return pages;
+                })()}
+              </div>
+              
+              {/* Next page */}
               <button
-                onClick={() => {
-                  const input = document.querySelector('.pagination-input');
-                  const page = parseInt(input.value);
-                  if (page >= 1 && page <= totalPages) {
-                    setCurrentPage(page);
-                    input.value = ''; // Clear after successful navigation
-                  } else if (input.value !== '') {
-                    alert(`Please enter a page number between 1 and ${totalPages}`);
-                  }
-                }}
-                className="px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors font-medium"
-                title="Go to page"
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                disabled={currentPage === totalPages}
+                className={`p-2 rounded ${
+                  currentPage === totalPages
+                    ? 'text-gray-400 cursor-not-allowed'
+                    : 'text-gray-600 hover:bg-gray-100'
+                }`}
+                title="Next page"
               >
-                Go
+                <ChevronRight size={16} />
               </button>
+              
+              {/* Last page */}
+              <button
+                onClick={() => setCurrentPage(totalPages)}
+                disabled={currentPage === totalPages}
+                className={`p-2 rounded ${
+                  currentPage === totalPages
+                    ? 'text-gray-400 cursor-not-allowed'
+                    : 'text-gray-600 hover:bg-gray-100'
+                }`}
+                title="Last page"
+              >
+                <ChevronLast size={16} />
+              </button>
+              
+              {/* Page input for quick navigation */}
+              <div className="flex items-center gap-2 ml-4 border-l border-gray-300 pl-4">
+                <span className="text-sm text-gray-600">Current: <span className="font-semibold text-blue-600">{currentPage}</span></span>
+                <span className="text-gray-300">|</span>
+                <span className="text-sm text-gray-600 font-medium">Go to page:</span>
+                <input
+                  type="number"
+                  min={1}
+                  max={totalPages}
+                  defaultValue=""
+                  placeholder="Enter page"
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      const page = parseInt(e.target.value);
+                      if (page >= 1 && page <= totalPages) {
+                        setCurrentPage(page);
+                        e.target.value = ''; // Clear after successful navigation
+                      } else {
+                        alert(`Please enter a page number between 1 and ${totalPages}`);
+                      }
+                    }
+                  }}
+                  onInput={(e) => {
+                    const value = parseInt(e.target.value);
+                    // Prevent entering numbers above total pages
+                    if (value > totalPages) {
+                      e.target.value = totalPages;
+                    }
+                    // Prevent entering numbers below 1
+                    if (value < 1 && e.target.value !== '') {
+                      e.target.value = 1;
+                    }
+                  }}
+                  className="w-20 px-3 py-2 border border-gray-300 rounded-lg text-sm text-center focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors pagination-input"
+                />
+                <span className="text-sm text-gray-600">of <span className="font-medium text-gray-800">{totalPages}</span></span>
+                <button
+                  onClick={() => {
+                    const input = document.querySelector('.pagination-input');
+                    const page = parseInt(input.value);
+                    if (page >= 1 && page <= totalPages) {
+                      setCurrentPage(page);
+                      input.value = ''; // Clear after successful navigation
+                    } else if (input.value !== '') {
+                      alert(`Please enter a page number between 1 and ${totalPages}`);
+                    }
+                  }}
+                  className="px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                  title="Go to page"
+                >
+                  Go
+                </button>
+              </div>
             </div>
           </div>
         </div>
       </div>
+        
 
       {/* Filter Sidebar */}
       <FilterSidebar
@@ -1541,6 +1613,7 @@ const ClaimsTable = ({ sidebarOpen = true, onToggleSidebar }) => {
         data={sampleClaims}
       />
     </div>
+    </>
   );
 };
  
