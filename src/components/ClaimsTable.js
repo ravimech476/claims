@@ -1908,19 +1908,9 @@ const ClaimsTable = ({ sidebarOpen = true, onToggleSidebar, groups = [], setGrou
               )}
               
               {/* Show active filters count */}
-              {Object.keys(appliedFilters).length > 0 && (
-                <div className="flex items-center gap-2">
-                  <div className="bg-orange-100 text-orange-800 px-3 py-1 rounded text-sm font-medium">
-                    {Object.keys(appliedFilters).length} filter{Object.keys(appliedFilters).length > 1 ? 's' : ''} active
-                  </div>
-                  <button 
-                    onClick={clearAllFilters}
-                    className="flex items-center gap-1 px-2 py-1 border border-orange-300 text-orange-700 text-sm rounded hover:bg-orange-50 transition-colors"
-                    title="Clear all filters"
-                  >
-                    <X size={12} />
-                    Clear All
-                  </button>
+              {(Object.keys(appliedFilters).length > 0 || Object.keys(activeFilters).length > 0) && (
+                <div className="bg-orange-100 text-orange-800 px-3 py-1 rounded text-sm font-medium">
+                  {Object.keys(appliedFilters).length + Object.keys(activeFilters).length} filter{(Object.keys(appliedFilters).length + Object.keys(activeFilters).length) > 1 ? 's' : ''} active
                 </div>
               )}
               
@@ -2026,7 +2016,158 @@ const ClaimsTable = ({ sidebarOpen = true, onToggleSidebar, groups = [], setGrou
       </div>
  
       {/* Claims Table with Advanced Grouping */}
-      <div className="bg-white rounded-lg border border-gray-200 shadow-sm h-[650px] flex flex-col">
+      <div className={`bg-white rounded-lg border border-gray-200 shadow-sm flex flex-col ${
+        Object.keys(appliedFilters).length > 0 ? 'h-[650px]' : 'h-[650px]'
+      }`}>
+        
+        {/* Applied Filters Display Row */}
+        {(Object.keys(appliedFilters).length > 0 || Object.keys(activeFilters).length > 0) && (
+          <div className="bg-blue-50 border-b border-blue-200 px-6 py-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <Filter size={16} className="text-blue-600" />
+                  <span className="text-sm font-medium text-blue-800">Active Filters:</span>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  {/* Display filters from appliedFilters (column dropdown filters) */}
+                  {Object.entries(appliedFilters).map(([columnKey, filterConfig]) => {
+                    const column = allFilterableColumns[columnKey];
+                    if (!column) return null;
+                    
+                    let filterValue = '';
+                    let filterType = '';
+                    
+                    if (filterConfig.type === 'values' && filterConfig.selectedValues.size > 0) {
+                      const values = Array.from(filterConfig.selectedValues);
+                      if (values.length === 1) {
+                        filterValue = formatCellContent(values[0], column.type);
+                        filterType = 'equals';
+                      } else if (values.length <= 3) {
+                        filterValue = values.map(v => formatCellContent(v, column.type)).join(', ');
+                        filterType = 'in';
+                      } else {
+                        filterValue = `${values.length} values`;
+                        filterType = 'multiple';
+                      }
+                    } else if (filterConfig.type === 'text' && filterConfig.searchText) {
+                      filterValue = `"${filterConfig.searchText}"`;
+                      filterType = 'contains';
+                    } else if (filterConfig.type === 'number') {
+                      const parts = [];
+                      if (filterConfig.min !== undefined) parts.push(`≥ ${filterConfig.min}`);
+                      if (filterConfig.max !== undefined) parts.push(`≤ ${filterConfig.max}`);
+                      filterValue = parts.join(' and ');
+                      filterType = 'range';
+                    } else if (filterConfig.type === 'date') {
+                      const parts = [];
+                      if (filterConfig.dateFrom) parts.push(`from ${new Date(filterConfig.dateFrom).toLocaleDateString()}`);
+                      if (filterConfig.dateTo) parts.push(`to ${new Date(filterConfig.dateTo).toLocaleDateString()}`);
+                      filterValue = parts.join(' ');
+                      filterType = 'date range';
+                    }
+                    
+                    return (
+                      <div key={`applied-${columnKey}`} className="inline-flex items-center gap-1.5 bg-white border border-blue-300 rounded-lg px-3 py-1.5 text-sm">
+                        <span className="font-medium text-blue-800">{column.label}:</span>
+                        <span className="text-blue-700">{filterValue}</span>
+                        <span className="text-xs text-blue-600 bg-blue-100 px-1.5 py-0.5 rounded">{filterType}</span>
+                        <button
+                          onClick={() => removeFilter(columnKey)}
+                          className="ml-1 text-blue-400 hover:text-blue-600 transition-colors"
+                          title={`Remove ${column.label} filter`}
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                    );
+                  })}
+                  
+                  {/* Display filters from activeFilters (Filter Claims sidebar) */}
+                  {Object.entries(activeFilters).map(([columnKey, filterValues]) => {
+                    const column = allFilterableColumns[columnKey];
+                    if (!column || !filterValues || filterValues.length === 0) return null;
+                    
+                    let filterValue = '';
+                    let filterType = '';
+                    
+                    if (filterValues.length === 1) {
+                      filterValue = formatCellContent(filterValues[0], column.type);
+                      filterType = 'equals';
+                    } else if (filterValues.length <= 3) {
+                      filterValue = filterValues.map(v => formatCellContent(v, column.type)).join(', ');
+                      filterType = 'in';
+                    } else {
+                      filterValue = `${filterValues.length} values`;
+                      filterType = 'multiple';
+                    }
+                    
+                    return (
+                      <div key={`active-${columnKey}`} className="inline-flex items-center gap-1.5 bg-white border border-green-300 rounded-lg px-3 py-1.5 text-sm">
+                        <span className="font-medium text-green-800">{column.label}:</span>
+                        <span className="text-green-700">{filterValue}</span>
+                        <span className="text-xs text-green-600 bg-green-100 px-1.5 py-0.5 rounded">{filterType}</span>
+                        <button
+                          onClick={() => handleFilterChange(columnKey, [])}
+                          className="ml-1 text-green-400 hover:text-green-600 transition-colors"
+                          title={`Remove ${column.label} filter`}
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-blue-800">Results:</span>
+                  <span className="bg-blue-600 text-white px-2 py-1 rounded text-sm font-bold">
+                    {filteredAndSortedData.length.toLocaleString()}
+                  </span>
+                  <span className="text-xs text-blue-600">
+                    of {sampleClaims.length.toLocaleString()} total
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {Object.keys(appliedFilters).length > 0 && (
+                    <button
+                      onClick={clearAllFilters}
+                      className="flex items-center gap-1.5 px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors"
+                      title="Clear column filters"
+                    >
+                      <X size={12} />
+                      Clear Column Filters
+                    </button>
+                  )}
+                  {/* {Object.keys(activeFilters).length > 0 && (
+                    <button
+                      onClick={() => setActiveFilters({})}
+                      className="flex items-center gap-1.5 px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 transition-colors"
+                      title="Clear sidebar filters"
+                    >
+                      <X size={12} />
+                      Clear Sidebar Filters
+                    </button>
+                  )} */}
+                  {(Object.keys(appliedFilters).length > 0 || Object.keys(activeFilters).length > 0) && (
+                    <button
+                      onClick={() => {
+                        clearAllFilters();
+                        setActiveFilters({});
+                      }}
+                      className="flex items-center gap-1.5 px-2 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700 transition-colors"
+                      title="Clear all filters"
+                    >
+                      <X size={12} />
+                      Clear All
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
         {/* FIXED HEADERS SECTION - Horizontally Scrollable (No Visible Scrollbar) */}
         <div
           className="flex-shrink-0 overflow-y-hidden header-scroll-hide"
