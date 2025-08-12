@@ -2024,12 +2024,12 @@ const ClaimsTable = ({ sidebarOpen = true, onToggleSidebar, groups = [], setGrou
         {(Object.keys(appliedFilters).length > 0 || Object.keys(activeFilters).length > 0) && (
           <div className="bg-blue-50 border-b border-blue-200 px-6 py-3">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3 min-w-0 flex-1">
+                <div className="flex items-center gap-2 flex-shrink-0">
                   <Filter size={16} className="text-blue-600" />
                   <span className="text-sm font-medium text-blue-800">Active Filters:</span>
                 </div>
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="flex items-center gap-2 overflow-x-auto custom-scrollbar pr-4" style={{scrollbarHeight: '2px'}}>
                   {/* Display filters from appliedFilters (column dropdown filters) */}
                   {Object.entries(appliedFilters).map(([columnKey, filterConfig]) => {
                     const column = allFilterableColumns[columnKey];
@@ -2068,7 +2068,7 @@ const ClaimsTable = ({ sidebarOpen = true, onToggleSidebar, groups = [], setGrou
                     }
                     
                     return (
-                      <div key={`applied-${columnKey}`} className="inline-flex items-center gap-1.5 bg-white border border-blue-300 rounded-lg px-3 py-1.5 text-sm">
+                      <div key={`applied-${columnKey}`} className="inline-flex items-center gap-1.5 bg-white border border-blue-300 rounded-lg px-3 py-1.5 text-sm whitespace-nowrap flex-shrink-0">
                         <span className="font-medium text-blue-800">{column.label}:</span>
                         <span className="text-blue-700">{filterValue}</span>
                         <span className="text-xs text-blue-600 bg-blue-100 px-1.5 py-0.5 rounded">{filterType}</span>
@@ -2103,7 +2103,7 @@ const ClaimsTable = ({ sidebarOpen = true, onToggleSidebar, groups = [], setGrou
                     }
                     
                     return (
-                      <div key={`active-${columnKey}`} className="inline-flex items-center gap-1.5 bg-white border border-green-300 rounded-lg px-3 py-1.5 text-sm">
+                      <div key={`active-${columnKey}`} className="inline-flex items-center gap-1.5 bg-white border border-green-300 rounded-lg px-3 py-1.5 text-sm whitespace-nowrap flex-shrink-0">
                         <span className="font-medium text-green-800">{column.label}:</span>
                         <span className="text-green-700">{filterValue}</span>
                         <span className="text-xs text-green-600 bg-green-100 px-1.5 py-0.5 rounded">{filterType}</span>
@@ -2119,7 +2119,7 @@ const ClaimsTable = ({ sidebarOpen = true, onToggleSidebar, groups = [], setGrou
                   })}
                 </div>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 flex-shrink-0">
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-medium text-blue-800">Results:</span>
                   <span className="bg-blue-600 text-white px-2 py-1 rounded text-sm font-bold">
@@ -2159,7 +2159,7 @@ const ClaimsTable = ({ sidebarOpen = true, onToggleSidebar, groups = [], setGrou
                       className="flex items-center gap-1.5 px-2 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700 transition-colors"
                       title="Clear all filters"
                     >
-                      <X size={12} />
+                      <X size={14} />
                       Clear All
                     </button>
                   )}
