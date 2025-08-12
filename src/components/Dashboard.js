@@ -4,6 +4,7 @@ import Sidebar from './Sidebar';
 import ClaimsTable from './ClaimsTable';
 import ClaimsDashboard from './ClaimsDashboard';
 import ClaimImportPageSimple from './ClaimImportPageSimple';
+import GroupPage from './GroupPage';
 import EmptyPage from './EmptyPage';
 import { Menu } from 'lucide-react';
 
@@ -26,6 +27,8 @@ const Dashboard = ({ onLogout }) => {
         return 'Import Claims';
       case '/dashboard':
         return 'Dashboard';
+      case '/groups':
+        return 'Group Management';
       case '/members':
         return 'Members Management';
       case '/providers':
@@ -95,6 +98,7 @@ const Dashboard = ({ onLogout }) => {
             <Route path="/claims" element={<ClaimsTable sidebarOpen={sidebarOpen} onToggleSidebar={toggleSidebar} />} />
             <Route path="/claims/import" element={<ClaimImportPageSimple />} />
             <Route path="/dashboard" element={<ClaimsDashboard />} />
+            <Route path="/groups" element={<GroupPage sidebarOpen={sidebarOpen} onToggleSidebar={toggleSidebar} />} />
             <Route path="/members" element={<EmptyPage title="Members Management" />} />
             <Route path="/providers" element={<EmptyPage title="Providers Management" />} />
             <Route path="/payments" element={<EmptyPage title="Payments Management" />} />

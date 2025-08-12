@@ -4,6 +4,7 @@ import ClaimsTable from './components/ClaimsTable';
 import ClaimImportPage from './components/ClaimImportPage';
 import ClaimImportPageTest from './components/ClaimImportPageTest';
 import ClaimImportPageSimple from './components/ClaimImportPageSimple';
+import GroupPage from './components/GroupPage';
 import './App.css';
 
 function App() {
@@ -21,6 +22,9 @@ function App() {
           <Route path="/claims/import-test" element={<ClaimImportPageTest />} />
           <Route path="/claims/import-full" element={<ClaimImportPage />} />
           
+          {/* Group management route */}
+          <Route path="/groups" element={<GroupPage />} />
+          
           {/* Test navigation */}
           <Route path="/test" element={
             <div className="p-8">
@@ -37,6 +41,9 @@ function App() {
                 </Link>
                 <Link to="/claims/import-full" className="block text-blue-600 hover:underline">
                   Go to Import Page (Full)
+                </Link>
+                <Link to="/groups" className="block text-blue-600 hover:underline">
+                  Go to Group Management
                 </Link>
               </div>
             </div>

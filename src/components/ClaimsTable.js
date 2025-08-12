@@ -21,7 +21,10 @@ import {
   RefreshCw,
   Search,
   SortAsc,
-  SortDesc
+  SortDesc,
+  Users,
+  Edit2,
+  Play
 } from 'lucide-react';
 import ExcelFilter from './ExcelFilter';
 import FilterSidebar from './FilterSidebar';
@@ -469,8 +472,122 @@ const SubHeader = ({
     </th>
   );
 };
+
+// Group Creation Modal Component
+const GroupCreationModal = ({ isOpen, onClose, onSave, selectedClaims }) => {
+  const [groupName, setGroupName] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!groupName.trim()) return;
+
+    setLoading(true);
+    try {
+      await onSave(groupName.trim(), selectedClaims);
+      setGroupName('');
+      onClose();
+    } catch (error) {
+      console.error('Error creating group:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleClose = () => {
+    setGroupName('');
+    onClose();
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <>
+      {/* Overlay */}
+      <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+        {/* Modal */}
+        <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+          {/* Header */}
+          <div className="px-6 py-4 border-b border-gray-200">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                <Users size={20} className="text-blue-600" />
+                Create Group
+              </h3>
+              <button
+                onClick={handleClose}
+                className="text-gray-400 hover:text-gray-600 p-1 hover:bg-gray-100 rounded"
+              >
+                <X size={20} />
+              </button>
+            </div>
+          </div>
+
+          {/* Body */}
+          <form onSubmit={handleSubmit} className="px-6 py-4">
+            <div className="mb-4">
+              <div className="mb-4 p-4 bg-blue-50 rounded-lg">
+                <div className="flex items-center gap-2 text-blue-800">
+                  <Users size={16} />
+                  <span className="font-medium">Group Details</span>
+                </div>
+                <p className="text-sm text-blue-700 mt-1">
+                  This group will contain {selectedClaims.size} selected claim{selectedClaims.size !== 1 ? 's' : ''}
+                </p>
+              </div>
+
+              <label htmlFor="groupName" className="block text-sm font-medium text-gray-700 mb-2">
+                Group Name <span className="text-red-500">*</span>
+              </label>
+              <input
+                id="groupName"
+                type="text"
+                value={groupName}
+                onChange={(e) => setGroupName(e.target.value)}
+                placeholder="Enter group name..."
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                required
+                disabled={loading}
+                autoFocus
+              />
+            </div>
+
+            {/* Footer */}
+            <div className="flex justify-end gap-3 pt-4">
+              <button
+                type="button"
+                onClick={handleClose}
+                className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                disabled={loading}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={!groupName.trim() || loading}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+              >
+                {loading ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    Creating...
+                  </>
+                ) : (
+                  <>
+                    <Users size={16} />
+                    Create Group
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </>
+  );
+};
  
-const ClaimsTable = ({ sidebarOpen = true, onToggleSidebar }) => {
+const ClaimsTable = ({ sidebarOpen = true, onToggleSidebar, groups = [], setGroups }) => {
   // State management
   const [selectedClaims, setSelectedClaims] = useState(new Set());
   const [expandedGroups, setExpandedGroups] = useState(new Set(['patient_info', 'claim_status']));
@@ -486,6 +603,10 @@ const ClaimsTable = ({ sidebarOpen = true, onToggleSidebar }) => {
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [activeFilter, setActiveFilter] = useState(null);
   const [appliedFilters, setAppliedFilters] = useState({});
+  
+  // Group Management State
+  const [showGroupModal, setShowGroupModal] = useState(false);
+  const [groupIdCounter, setGroupIdCounter] = useState(1);
 
   // Load imported claims from localStorage
   useEffect(() => {
@@ -1553,6 +1674,86 @@ const ClaimsTable = ({ sidebarOpen = true, onToggleSidebar }) => {
     console.log('Claims data refreshed - all filters cleared');
   };
 
+  // Group Management Functions
+  const handleCreateGroup = () => {
+    if (selectedClaims.size === 0) {
+      alert('Please select claims to create a group');
+      return;
+    }
+    setShowGroupModal(true);
+  };
+
+  const handleSaveGroup = (groupName, selectedClaimIds) => {
+    const newGroup = {
+      id: Date.now(), // Simple ID generation
+      name: groupName,
+      description: '', // Can be enhanced later
+      priority: 'Medium', // Default priority
+      status: 'Active',
+      claimIds: Array.from(selectedClaimIds),
+      memberCount: selectedClaimIds.size,
+      processedCount: 0,
+      createdAt: new Date().toISOString(),
+      lastUpdated: new Date().toISOString()
+    };
+    
+    // Get existing groups from localStorage
+    try {
+      const existingGroups = JSON.parse(localStorage.getItem('claimGroups') || '[]');
+      const updatedGroups = [...existingGroups, newGroup];
+      
+      // Save to localStorage
+      localStorage.setItem('claimGroups', JSON.stringify(updatedGroups));
+      
+      // If setGroups prop is available, update it too
+      if (setGroups) {
+        setGroups(updatedGroups);
+      }
+      
+      // Clear selection after group creation
+      setSelectedClaims(new Set());
+      setShowGroupModal(false);
+      
+      // Optional: Show success message
+      console.log(`Group "${groupName}" created with ${selectedClaimIds.size} claims`);
+      alert(`Group "${groupName}" created successfully with ${selectedClaimIds.size} claims!`);
+      
+    } catch (error) {
+      console.error('Error saving group:', error);
+      alert('Error creating group. Please try again.');
+    }
+  };
+
+  const handleExecuteGroup = (groupId) => {
+    const group = groups.find(g => g.id === groupId);
+    if (!group) return;
+    
+    // Here you can implement the execute functionality
+    console.log(`Executing actions for group: ${group.name}`);
+    console.log('Group claims:', group.claimIds);
+    
+    // You can add specific execution logic here
+    alert(`Executing group "${group.name}" with ${group.memberCount} claims`);
+  };
+
+  const handleEditGroup = (groupId, newName) => {
+    if (setGroups) {
+      setGroups(prev => prev.map(group => 
+        group.id === groupId 
+          ? { ...group, name: newName, lastUpdated: new Date().toISOString() }
+          : group
+      ));
+    }
+  };
+
+  const handleDeleteGroup = (groupId) => {
+    if (window.confirm('Are you sure you want to delete this group?')) {
+      if (setGroups) {
+        setGroups(prev => prev.filter(group => group.id !== groupId));
+      }
+    }
+  };
+
   // Open filter sidebar
   const handleOpenFilters = () => {
     setShowFilterSidebar(true);
@@ -1684,15 +1885,26 @@ const ClaimsTable = ({ sidebarOpen = true, onToggleSidebar }) => {
                 </div>
               )}
               
-              {/* Refresh Button */}
-              <button 
-                onClick={handleRefresh}
-                className="flex items-center gap-2 px-3 py-2 border border-gray-300 text-gray-700 rounded hover:bg-gray-50 transition-colors"
-                title="Refresh claims data"
-              >
-                <RefreshCw size={16} />
-                Refresh
-              </button>
+              {/* Conditional Button - Show Create Group when claims are selected, otherwise show Refresh */}
+              {selectedClaims.size > 0 ? (
+                <button 
+                  onClick={handleCreateGroup}
+                  className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors"
+                  title="Create group from selected claims"
+                >
+                  <Users size={16} />
+                  Create Group
+                </button>
+              ) : (
+                <button 
+                  onClick={handleRefresh}
+                  className="flex items-center gap-2 px-3 py-2 border border-gray-300 text-gray-700 rounded hover:bg-gray-50 transition-colors"
+                  title="Refresh claims data"
+                >
+                  <RefreshCw size={16} />
+                  Refresh
+                </button>
+              )}
               
               {/* Filter Button */}
               <button 
@@ -2160,6 +2372,14 @@ const ClaimsTable = ({ sidebarOpen = true, onToggleSidebar }) => {
         </div>
       </div>
         
+
+      {/* Group Creation Modal */}
+      <GroupCreationModal
+        isOpen={showGroupModal}
+        onClose={() => setShowGroupModal(false)}
+        onSave={handleSaveGroup}
+        selectedClaims={selectedClaims}
+      />
 
       {/* Filter Sidebar */}
       <FilterSidebar
