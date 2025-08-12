@@ -2,24 +2,126 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Custom scrollbar styles */
+/* Global Custom Scrollbar Styles - Applied to all scrollable elements */
+* {
+  scrollbar-width: thin; /* Firefox - makes scrollbar thinner */
+  scrollbar-color: #cbd5e1 #f1f5f9; /* Firefox - thumb and track colors */
+}
+
+*::-webkit-scrollbar {
+  width: 4px; /* Thin vertical scrollbar */
+  height: 4px; /* Thin horizontal scrollbar */
+}
+
+*::-webkit-scrollbar-track {
+  background: #f1f5f9; /* Light gray track */
+  border-radius: 2px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: #cbd5e1; /* Gray thumb */
+  border-radius: 2px;
+  transition: background-color 0.2s ease;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8; /* Darker gray on hover */
+}
+
+*::-webkit-scrollbar-corner {
+  background: #f1f5f9;
+}
+
+/* Custom scrollbar class for specific elements that need different styling */
+.custom-scrollbar {
+  scrollbar-width: thin; /* Firefox */
+  scrollbar-color: #cbd5e1 #f1f5f9; /* Firefox */
+}
+
 .custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 4px;
+  height: 4px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 3px;
+  background: #f1f5f9;
+  border-radius: 2px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
-  border-radius: 3px;
+  background: #cbd5e1;
+  border-radius: 2px;
+  transition: background-color 0.2s ease;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #a8a8a8;
+  background: #94a3b8;
+}
+
+.custom-scrollbar::-webkit-scrollbar-corner {
+  background: #f1f5f9;
+}
+
+/* Hide scrollbar completely for specific elements */
+.scrollbar-hide {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+/* Thicker scrollbar for main content areas */
+.scrollbar-thick {
+  scrollbar-width: auto; /* Firefox - normal width */
+  scrollbar-color: #94a3b8 #e2e8f0; /* Firefox - darker colors */
+}
+
+.scrollbar-thick::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.scrollbar-thick::-webkit-scrollbar-track {
+  background: #e2e8f0;
+  border-radius: 4px;
+}
+
+.scrollbar-thick::-webkit-scrollbar-thumb {
+  background: #94a3b8;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+
+.scrollbar-thick::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
+/* Blue themed scrollbar for special areas */
+.scrollbar-blue {
+  scrollbar-width: thin;
+  scrollbar-color: #3b82f6 #dbeafe;
+}
+
+.scrollbar-blue::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+.scrollbar-blue::-webkit-scrollbar-track {
+  background: #dbeafe;
+  border-radius: 2px;
+}
+
+.scrollbar-blue::-webkit-scrollbar-thumb {
+  background: #3b82f6;
+  border-radius: 2px;
+  transition: background-color 0.2s ease;
+}
+
+.scrollbar-blue::-webkit-scrollbar-thumb:hover {
+  background: #2563eb;
 }
 
 /* Table styles */

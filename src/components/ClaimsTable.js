@@ -240,7 +240,7 @@ const FilterDropdown = ({
         </div>
 
         {/* Filter Content */}
-        <div className="p-3 max-h-80 overflow-y-auto no-horizontal-scroll">
+        <div className="p-3 max-h-80 overflow-y-auto">
           {filterType === "values" && (
             <>
               {/* Search Box */}
@@ -284,7 +284,7 @@ const FilterDropdown = ({
               </div>
 
               {/* Values List */}
-              <div className="max-h-48 overflow-y-auto no-horizontal-scroll">
+              <div className="max-h-48 overflow-y-auto">
                 {sortedValues.map((value, index) => (
                   <div
                     key={index}
@@ -1828,56 +1828,6 @@ const ClaimsTable = ({ sidebarOpen = true, onToggleSidebar, groups = [], setGrou
  
   return (
     <>
-      {/* Add custom CSS for hiding scrollbars and custom scrollbar styling */}
-      <style jsx>{`
-        .scrollbar-hide {
-          -ms-overflow-style: none; /* IE and Edge */
-          scrollbar-width: none; /* Firefox */
-        }
-        .scrollbar-hide::-webkit-scrollbar {
-          display: none; /* Chrome, Safari, Opera */
-        }
-        .custom-scrollbar {
-          scrollbar-width: thin; /* Firefox - makes scrollbar thinner */
-          scrollbar-color: #cbd5e1 #f1f5f9; /* Firefox - thumb and track colors */
-        }
-        .custom-scrollbar::-webkit-scrollbar {
-          width: 4px; /* Reduced from default 16px to 4px */
-          height: 4px; /* For horizontal scrollbar */
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-          background: #f1f5f9; /* Light gray track */
-          border-radius: 2px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: #cbd5e1; /* Gray thumb */
-          border-radius: 2px;
-          transition: background-color 0.2s ease;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: #94a3b8; /* Darker gray on hover */
-        }
-        .custom-scrollbar::-webkit-scrollbar-corner {
-          background: #f1f5f9;
-        }
-        /* Hide horizontal scrollbar from header section */
-        .header-scroll-hide::-webkit-scrollbar {
-          display: none;
-        }
-        .header-scroll-hide {
-          scrollbar-width: none; /* Firefox */
-          -ms-overflow-style: none; /* IE and Edge */
-        }
-        /* Hide horizontal scrollbar where not needed */
-        .no-horizontal-scroll::-webkit-scrollbar:horizontal {
-          display: none;
-        }
-        .no-horizontal-scroll {
-          scrollbar-width: thin;
-          scrollbar-color: #cbd5e1 #f1f5f9;
-        }
-      `}</style>
-      
     <div className="min-h-screen bg-gray-50 relative">
       {/* Floating toggle button for collapsed sidebar - only show when sidebar is collapsed */}
       {!sidebarOpen && onToggleSidebar && (
@@ -2151,11 +2101,7 @@ const ClaimsTable = ({ sidebarOpen = true, onToggleSidebar, groups = [], setGrou
         )}
         {/* FIXED HEADERS SECTION - Horizontally Scrollable (No Visible Scrollbar) */}
         <div
-          className="flex-shrink-0 overflow-y-hidden header-scroll-hide"
-          style={{
-            scrollbarWidth: "none" /* Firefox */,
-            msOverflowStyle: "none" /* IE and Edge */,
-          }}
+          className="flex-shrink-0 overflow-y-hidden scrollbar-hide"
           onScroll={(e) => {
             // Sync body scroll with header scroll
             const bodyContainer = e.target.parentElement.querySelector(
