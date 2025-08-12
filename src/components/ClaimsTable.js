@@ -2130,26 +2130,7 @@ const ClaimsTable = ({ sidebarOpen = true, onToggleSidebar, groups = [], setGrou
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  {/* {Object.keys(appliedFilters).length > 0 && (
-                    <button
-                      onClick={clearAllFilters}
-                      className="flex items-center gap-1.5 px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors"
-                      title="Clear column filters"
-                    >
-                      <X size={12} />
-                      Clear Column Filters
-                    </button>
-                  )} */}
-                  {/* {Object.keys(activeFilters).length > 0 && (
-                    <button
-                      onClick={() => setActiveFilters({})}
-                      className="flex items-center gap-1.5 px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 transition-colors"
-                      title="Clear sidebar filters"
-                    >
-                      <X size={12} />
-                      Clear Sidebar Filters
-                    </button>
-                  )} */}
+                 
                   {(Object.keys(appliedFilters).length > 0 || Object.keys(activeFilters).length > 0) && (
                     <button
                       onClick={() => {
