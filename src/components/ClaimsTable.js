@@ -1979,7 +1979,7 @@ const ClaimsTable = ({ sidebarOpen = true, onToggleSidebar, groups = [], setGrou
                   <Filter size={16} className="text-blue-600" />
                   <span className="text-sm font-medium text-blue-800">Active Filters:</span>
                 </div>
-                <div className="flex items-center gap-2 overflow-x-auto custom-scrollbar pr-4" >
+                <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide pr-4">
                   {/* Display filters from appliedFilters (column dropdown filters) */}
                   {Object.entries(appliedFilters).map(([columnKey, filterConfig]) => {
                     const column = allFilterableColumns[columnKey];
