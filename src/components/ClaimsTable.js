@@ -590,7 +590,7 @@ const GroupCreationModal = ({ isOpen, onClose, onSave, selectedClaims }) => {
 const ClaimsTable = ({ sidebarOpen = true, onToggleSidebar, groups = [], setGroups }) => {
   // State management
   const [selectedClaims, setSelectedClaims] = useState(new Set());
-  const [expandedGroups, setExpandedGroups] = useState(new Set(['patient_info', 'claim_status']));
+  const [expandedGroups, setExpandedGroups] = useState(new Set()); // Start with all groups collapsed
   const [activeFilters, setActiveFilters] = useState({});
   const [sortConfig, setSortConfig] = useState({ key: null, direction: null });
   const [currentPage, setCurrentPage] = useState(1);
@@ -1897,7 +1897,7 @@ const ClaimsTable = ({ sidebarOpen = true, onToggleSidebar, groups = [], setGrou
               
               <a 
                 href="/claims/import"
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition-colors text-decoration-none"
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors text-decoration-none"
               >
                 <Upload size={14} />
                 Import Claims
@@ -1979,7 +1979,7 @@ const ClaimsTable = ({ sidebarOpen = true, onToggleSidebar, groups = [], setGrou
                   <Filter size={16} className="text-blue-600" />
                   <span className="text-sm font-medium text-blue-800">Active Filters:</span>
                 </div>
-                <div className="flex items-center gap-2 overflow-x-auto custom-scrollbar pr-4" style={{scrollbarHeight: '2px'}}>
+                <div className="flex items-center gap-2 overflow-x-auto custom-scrollbar pr-4" >
                   {/* Display filters from appliedFilters (column dropdown filters) */}
                   {Object.entries(appliedFilters).map(([columnKey, filterConfig]) => {
                     const column = allFilterableColumns[columnKey];
@@ -2053,13 +2053,13 @@ const ClaimsTable = ({ sidebarOpen = true, onToggleSidebar, groups = [], setGrou
                     }
                     
                     return (
-                      <div key={`active-${columnKey}`} className="inline-flex items-center gap-1.5 bg-white border border-green-300 rounded-lg px-3 py-1.5 text-sm whitespace-nowrap flex-shrink-0">
+                      <div key={`active-${columnKey}`} className="inline-flex items-center gap-1.5 bg-white border border-blue-300 rounded-lg px-3 py-1.5 text-sm whitespace-nowrap flex-shrink-0">
                         <span className="font-medium text-green-800">{column.label}:</span>
-                        <span className="text-green-700">{filterValue}</span>
-                        <span className="text-xs text-green-600 bg-green-100 px-1.5 py-0.5 rounded">{filterType}</span>
+                        <span className="text-blue-700">{filterValue}</span>
+                        <span className="text-xs text-blue-600 bg-blue-100 px-1.5 py-0.5 rounded">{filterType}</span>
                         <button
                           onClick={() => handleFilterChange(columnKey, [])}
-                          className="ml-1 text-green-400 hover:text-green-600 transition-colors"
+                          className="ml-1 text-blue-400 hover:text-blue-600 transition-colors"
                           title={`Remove ${column.label} filter`}
                         >
                           <X size={14} />
