@@ -49,35 +49,35 @@ const Sidebar = ({ isOpen, onToggle, onLogout, groups = [], onAddToGroup, onExec
       )}
       
       {/* Sidebar */}
-      <div className={`fixed left-0 top-0 h-full bg-gray-800 text-white transform transition-all duration-300 ease-in-out z-50 ${
+      <div className={`fixed left-0 top-0 h-full bg-white text-gray-800 transform transition-all duration-300 ease-in-out z-50 border-r border-gray-200 shadow-lg ${
         isOpen ? 'translate-x-0' : '-translate-x-full'
       } lg:translate-x-0 lg:static lg:z-auto ${
         isOpen ? 'w-64' : 'lg:w-16 w-64'
       }`}>
         
-        <div className="p-6 border-b border-gray-700">
+        <div className="p-6 border-b border-gray-200">
           <div className="flex items-center justify-between">
             <div className={`flex items-center transition-all duration-300 ${
               isOpen ? 'opacity-100' : 'lg:opacity-0 opacity-100'
             }`}>
               <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                <FileText size={18} />
+                <FileText size={18} className="text-white" />
               </div>
               {isOpen && (
-                <h2 className="text-xl font-bold ml-3">MediClaim</h2>
+                <h2 className="text-xl font-bold ml-3 text-gray-800">MediClaim</h2>
               )}
             </div>
             <div className="flex items-center">
               {/* Desktop toggle button - always visible */}
               <button 
                 onClick={onToggle} 
-                className="hidden lg:block p-1 rounded hover:bg-gray-700 transition-colors"
+                className="hidden lg:block p-1 rounded hover:bg-gray-100 transition-colors text-gray-600"
                 title={isOpen ? 'Collapse sidebar' : 'Expand sidebar'}
               >
                 {isOpen ? <ChevronLeft size={20} /> : <ChevronRight size={20} />}
               </button>
               {/* Mobile close button */}
-              <button onClick={onToggle} className="lg:hidden">
+              <button onClick={onToggle} className="lg:hidden text-gray-600">
                 <X size={24} />
               </button>
             </div>
@@ -95,10 +95,10 @@ const Sidebar = ({ isOpen, onToggle, onLogout, groups = [], onAddToGroup, onExec
                   onToggle();
                 }
               }}
-              className={`flex items-center px-6 py-3 text-sm hover:bg-gray-700 transition-colors group ${
+              className={`flex items-center px-6 py-3 text-sm hover:bg-blue-50 transition-colors group ${
                 isActivePath(item.path) 
-                  ? 'bg-gray-700 border-r-4 border-blue-500 text-blue-300' 
-                  : 'text-gray-300'
+                  ? 'bg-blue-100 border-r-4 border-blue-500 text-blue-700' 
+                  : 'text-gray-600'
               }`}
               title={!isOpen ? item.label : ''}
             >
@@ -112,20 +112,20 @@ const Sidebar = ({ isOpen, onToggle, onLogout, groups = [], onAddToGroup, onExec
           {/* Groups Section */}
           {isOpen && groups && groups.length > 0 && (
             <div className="mt-6 px-6">
-              <div className="border-t border-gray-700 pt-4">
-                <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
+              <div className="border-t border-gray-200 pt-4">
+                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
                   Groups
                 </h3>
                 <div className="space-y-1">
                   {groups.map((group) => (
-                    <div key={group.id} className="bg-gray-750 rounded-lg p-3 border border-gray-600">
+                    <div key={group.id} className="bg-gray-50 rounded-lg p-3 border border-gray-200">
                       {/* Group Header */}
                       <div className="flex items-center gap-2 mb-2">
-                        <Users size={14} className="text-blue-400" />
-                        <span className="text-sm font-medium text-white truncate">
+                        <Users size={14} className="text-blue-600" />
+                        <span className="text-sm font-medium text-gray-800 truncate">
                           {group.name}
                         </span>
-                        <span className="text-xs text-gray-400 ml-auto">
+                        <span className="text-xs text-gray-500 ml-auto">
                           ({group.memberCount})
                         </span>
                       </div>
@@ -157,10 +157,10 @@ const Sidebar = ({ isOpen, onToggle, onLogout, groups = [], onAddToGroup, onExec
           )}
         </nav>
         
-        <div className="border-t border-gray-700 p-6">
+        <div className="border-t border-gray-200 p-6">
           <button 
             onClick={onLogout}
-            className={`flex items-center w-full px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-gray-700 rounded transition-colors group ${
+            className={`flex items-center w-full px-4 py-2 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded transition-colors group ${
               isOpen ? 'justify-start' : 'justify-center'
             }`}
             title={!isOpen ? 'Logout' : ''}

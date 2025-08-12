@@ -240,7 +240,7 @@ const FilterDropdown = ({
         </div>
 
         {/* Filter Content */}
-        <div className="p-3 max-h-80 overflow-y-auto">
+        <div className="p-3 max-h-80 overflow-y-auto no-horizontal-scroll">
           {filterType === "values" && (
             <>
               {/* Search Box */}
@@ -284,7 +284,7 @@ const FilterDropdown = ({
               </div>
 
               {/* Values List */}
-              <div className="max-h-48 overflow-y-auto">
+              <div className="max-h-48 overflow-y-auto no-horizontal-scroll">
                 {sortedValues.map((value, index) => (
                   <div
                     key={index}
@@ -1828,7 +1828,7 @@ const ClaimsTable = ({ sidebarOpen = true, onToggleSidebar, groups = [], setGrou
  
   return (
     <>
-      {/* Add custom CSS for hiding scrollbars */}
+      {/* Add custom CSS for hiding scrollbars and custom scrollbar styling */}
       <style jsx>{`
         .scrollbar-hide {
           -ms-overflow-style: none; /* IE and Edge */
@@ -1836,6 +1836,45 @@ const ClaimsTable = ({ sidebarOpen = true, onToggleSidebar, groups = [], setGrou
         }
         .scrollbar-hide::-webkit-scrollbar {
           display: none; /* Chrome, Safari, Opera */
+        }
+        .custom-scrollbar {
+          scrollbar-width: thin; /* Firefox - makes scrollbar thinner */
+          scrollbar-color: #cbd5e1 #f1f5f9; /* Firefox - thumb and track colors */
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 4px; /* Reduced from default 16px to 4px */
+          height: 4px; /* For horizontal scrollbar */
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: #f1f5f9; /* Light gray track */
+          border-radius: 2px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: #cbd5e1; /* Gray thumb */
+          border-radius: 2px;
+          transition: background-color 0.2s ease;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: #94a3b8; /* Darker gray on hover */
+        }
+        .custom-scrollbar::-webkit-scrollbar-corner {
+          background: #f1f5f9;
+        }
+        /* Hide horizontal scrollbar from header section */
+        .header-scroll-hide::-webkit-scrollbar {
+          display: none;
+        }
+        .header-scroll-hide {
+          scrollbar-width: none; /* Firefox */
+          -ms-overflow-style: none; /* IE and Edge */
+        }
+        /* Hide horizontal scrollbar where not needed */
+        .no-horizontal-scroll::-webkit-scrollbar:horizontal {
+          display: none;
+        }
+        .no-horizontal-scroll {
+          scrollbar-width: thin;
+          scrollbar-color: #cbd5e1 #f1f5f9;
         }
       `}</style>
       
@@ -1876,7 +1915,7 @@ const ClaimsTable = ({ sidebarOpen = true, onToggleSidebar, groups = [], setGrou
                   </div>
                   <button 
                     onClick={clearAllFilters}
-                    className="flex items-center gap-1 px-2 py-1 border border-orange-300 text-orange-700 rounded text-sm hover:bg-orange-50 transition-colors"
+                    className="flex items-center gap-1 px-2 py-1 border border-orange-300 text-orange-700 text-sm rounded hover:bg-orange-50 transition-colors"
                     title="Clear all filters"
                   >
                     <X size={12} />
@@ -1889,19 +1928,19 @@ const ClaimsTable = ({ sidebarOpen = true, onToggleSidebar, groups = [], setGrou
               {selectedClaims.size > 0 ? (
                 <button 
                   onClick={handleCreateGroup}
-                  className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 text-white text-sm rounded hover:bg-purple-700 transition-colors"
                   title="Create group from selected claims"
                 >
-                  <Users size={16} />
+                  <Users size={14} />
                   Create Group
                 </button>
               ) : (
                 <button 
                   onClick={handleRefresh}
-                  className="flex items-center gap-2 px-3 py-2 border border-gray-300 text-gray-700 rounded hover:bg-gray-50 transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-300 text-gray-700 text-sm rounded hover:bg-gray-50 transition-colors"
                   title="Refresh claims data"
                 >
-                  <RefreshCw size={16} />
+                  <RefreshCw size={14} />
                   Refresh
                 </button>
               )}
@@ -1909,18 +1948,18 @@ const ClaimsTable = ({ sidebarOpen = true, onToggleSidebar, groups = [], setGrou
               {/* Filter Button */}
               <button 
                 onClick={handleOpenFilters}
-                className="flex items-center gap-2 px-3 py-2 border border-gray-300 text-gray-700 rounded hover:bg-gray-50 transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-300 text-gray-700 text-sm rounded hover:bg-gray-50 transition-colors"
                 title="Filter claims"
               >
-                <Filter size={16} />
+                <Filter size={14} />
                 Filter Claims
               </button>
               
               <a 
                 href="/claims/import"
-                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors text-decoration-none"
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition-colors text-decoration-none"
               >
-                <Upload size={16} />
+                <Upload size={14} />
                 Import Claims
               </a>
               
@@ -1928,11 +1967,11 @@ const ClaimsTable = ({ sidebarOpen = true, onToggleSidebar, groups = [], setGrou
               <div className="relative export-dropdown">
                 <button 
                   onClick={() => setShowExportMenu(!showExportMenu)}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors"
                 >
-                  <Download size={16} />
+                  <Download size={14} />
                   Export
-                  <ChevronDown size={14} className={`transition-transform ${showExportMenu ? 'rotate-180' : ''}`} />
+                  <ChevronDown size={12} className={`transition-transform ${showExportMenu ? 'rotate-180' : ''}`} />
                 </button>
                 
                 {showExportMenu && (
@@ -1988,9 +2027,9 @@ const ClaimsTable = ({ sidebarOpen = true, onToggleSidebar, groups = [], setGrou
  
       {/* Claims Table with Advanced Grouping */}
       <div className="bg-white rounded-lg border border-gray-200 shadow-sm h-[650px] flex flex-col">
-        {/* FIXED HEADERS SECTION - Horizontally Scrollable (Hidden Scrollbar) */}
+        {/* FIXED HEADERS SECTION - Horizontally Scrollable (No Visible Scrollbar) */}
         <div
-          className="flex-shrink-0 overflow-y-hidden scrollbar-hide"
+          className="flex-shrink-0 overflow-y-hidden header-scroll-hide"
           style={{
             scrollbarWidth: "none" /* Firefox */,
             msOverflowStyle: "none" /* IE and Edge */,
@@ -2097,7 +2136,7 @@ const ClaimsTable = ({ sidebarOpen = true, onToggleSidebar, groups = [], setGrou
 
         {/* SCROLLABLE BODY SECTION */}
         <div
-          className="flex-1 overflow-auto body-scroll-container"
+          className="flex-1 overflow-auto body-scroll-container custom-scrollbar"
           onScroll={(e) => {
             // Sync header scroll with body scroll (only horizontal)
             const headerContainer =

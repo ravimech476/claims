@@ -704,6 +704,42 @@ const ClaimsDashboard = () => {
   };
 
   return (
+    <>
+      {/* Custom scrollbar styling */}
+      <style jsx>{`
+        .custom-scrollbar {
+          scrollbar-width: thin; /* Firefox - makes scrollbar thinner */
+          scrollbar-color: #cbd5e1 #f1f5f9; /* Firefox - thumb and track colors */
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 4px; /* Reduced from default 16px to 4px */
+          height: 4px; /* For horizontal scrollbar */
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: #f1f5f9; /* Light gray track */
+          border-radius: 2px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: #cbd5e1; /* Gray thumb */
+          border-radius: 2px;
+          transition: background-color 0.2s ease;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: #94a3b8; /* Darker gray on hover */
+        }
+        .custom-scrollbar::-webkit-scrollbar-corner {
+          background: #f1f5f9;
+        }
+        /* Hide horizontal scrollbar where not needed */
+        .no-horizontal-scroll::-webkit-scrollbar:horizontal {
+          display: none;
+        }
+        .no-horizontal-scroll {
+          scrollbar-width: thin;
+          scrollbar-color: #cbd5e1 #f1f5f9;
+        }
+      `}</style>
+      
     <div className="min-h-screen bg-gray-50 p-6">
       {/* Header */}
       <div className="mb-8">
@@ -732,17 +768,17 @@ const ClaimsDashboard = () => {
             {/* Action Buttons */}
             <button 
               onClick={handleRefresh}
-              className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-300 text-gray-700 text-sm rounded-lg hover:bg-gray-50 transition-colors"
             >
-              <RefreshCw size={16} />
+              <RefreshCw size={14} />
               Refresh
             </button>
             
             <button 
               onClick={handleExport}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
             >
-              <Download size={16} />
+              <Download size={14} />
               Export Report
             </button>
           </div>
@@ -909,22 +945,22 @@ const ClaimsDashboard = () => {
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-semibold text-gray-900">Recent Claims</h3>
             <div className="flex items-center gap-2">
-              <button className="flex items-center gap-2 px-3 py-2 text-sm border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors shadow-sm">
-                <Filter size={16} />
+              <button className="flex items-center gap-1.5 px-2 py-1.5 text-sm border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors shadow-sm">
+                <Filter size={14} />
                 Filter
               </button>
               <button 
                 onClick={() => window.location.href = '/claims'}
-                className="flex items-center gap-2 px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
+                className="flex items-center gap-1.5 px-2 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
               >
-                <Eye size={16} />
+                <Eye size={14} />
                 View All
               </button>
             </div>
           </div>
         </div>
         
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto custom-scrollbar">
           <table className="w-full">
             <thead className="bg-gray-50">
               <tr>
@@ -978,30 +1014,30 @@ const ClaimsDashboard = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <button 
             onClick={() => window.location.href = '/claims'}
-            className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-all shadow-sm hover:shadow-md"
+            className="flex items-center gap-2 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-all shadow-sm hover:shadow-md"
           >
-            <Plus className="w-5 h-5 text-blue-600" />
+            <Plus className="w-4 h-4 text-blue-600" />
             <span className="text-sm font-medium">New Claim</span>
           </button>
           <button 
             onClick={() => window.location.href = '/claims/import'}
-            className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-all shadow-sm hover:shadow-md"
+            className="flex items-center gap-2 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-all shadow-sm hover:shadow-md"
           >
-            <Upload className="w-5 h-5 text-green-600" />
+            <Upload className="w-4 h-4 text-green-600" />
             <span className="text-sm font-medium">Import Claims</span>
           </button>
           <button 
             onClick={handleExport}
-            className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-all shadow-sm hover:shadow-md"
+            className="flex items-center gap-2 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-all shadow-sm hover:shadow-md"
           >
-            <FileText className="w-5 h-5 text-purple-600" />
+            <FileText className="w-4 h-4 text-purple-600" />
             <span className="text-sm font-medium">Generate Report</span>
           </button>
           <button 
             onClick={() => window.location.href = '/analytics'}
-            className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-all shadow-sm hover:shadow-md"
+            className="flex items-center gap-2 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-all shadow-sm hover:shadow-md"
           >
-            <Activity className="w-5 h-5 text-orange-600" />
+            <Activity className="w-4 h-4 text-orange-600" />
             <span className="text-sm font-medium">View Analytics</span>
           </button>
         </div>
@@ -1028,7 +1064,7 @@ const ClaimsDashboard = () => {
               </button>
             </div>
             
-            <div className="p-6 overflow-y-auto max-h-[60vh]">
+            <div className="p-6 overflow-y-auto max-h-[60vh] no-horizontal-scroll">
               <h4 className="font-medium text-gray-900 mb-4">Recent Claims ({getDepartmentDetails.length})</h4>
               <div className="space-y-3">
                 {getDepartmentDetails.map((claim, index) => (
@@ -1087,7 +1123,7 @@ const ClaimsDashboard = () => {
               </button>
             </div>
             
-            <div className="p-6 overflow-y-auto max-h-[60vh]">
+            <div className="p-6 overflow-y-auto max-h-[60vh] no-horizontal-scroll">
               <h4 className="font-medium text-gray-900 mb-4">Recent Claims ({getMonthDetails.length})</h4>
               <div className="space-y-3">
                 {getMonthDetails.map((claim, index) => (
@@ -1111,6 +1147,7 @@ const ClaimsDashboard = () => {
         </div>
       )}
     </div>
+    </>
   );
 };
 
